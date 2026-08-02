@@ -37,6 +37,7 @@ export const GET: APIRoute = async ({ url, request }) => {
   const totals = stats.reduce(
     (acc, d) => {
       acc.checks += d.checks;
+      acc.checksBot += d.checksBot;
       acc.api += d.api;
       acc.guideConversions += d.guideConversions;
       for (const [k, v] of Object.entries(d.views)) acc.views[k] = (acc.views[k] ?? 0) + v;
@@ -45,8 +46,8 @@ export const GET: APIRoute = async ({ url, request }) => {
       for (const [k, v] of Object.entries(d.sources)) acc.sources[k] = (acc.sources[k] ?? 0) + v;
       return acc;
     },
-    { checks: 0, api: 0, guideConversions: 0, views: {}, referrers: {}, bots: {}, sources: {} } as {
-      checks: number; api: number; guideConversions: number;
+    { checks: 0, checksBot: 0, api: 0, guideConversions: 0, views: {}, referrers: {}, bots: {}, sources: {} } as {
+      checks: number; checksBot: number; api: number; guideConversions: number;
       views: Record<string, number>; referrers: Record<string, number>;
       bots: Record<string, number>; sources: Record<string, number>;
     },

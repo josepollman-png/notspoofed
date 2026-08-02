@@ -80,7 +80,7 @@ npm run dev            # http://localhost:4321
 ```
 
 ```sh
-npm test               # 149 offline tests, no network
+npm test               # 154 offline tests, no network
 npm run test:live      # 12 live-DNS tests against real domains
 npm run check          # astro check / typecheck — must stay at 0 errors
 npm run build && npm run preview
@@ -263,10 +263,18 @@ Instead `src/lib/stats.ts` keeps aggregate counters in Redis:
 
 | Field | Meaning |
 |---|---|
-| `checks` / `api` | Successful checks, and how many came via the JSON API |
+| `checks` / `api` | Checks by an apparent human or via the JSON API, and how many were the API |
+| `checks:bot` | Checks by a crawler on the web route — counted, never folded into `checks` |
 | `conv:guide` | **A check whose referrer was one of our own guides** — the funnel metric the content strategy rests on |
 | `view:<path>` | Page views, on an allow-list of known paths |
 | `ref:<host>` | External referrer, **host only** |
+
+> **The bot split on `checks` is load-bearing and was wrong for the first three days.**
+> The landing-page form is a `GET`, so any crawler that submits forms produces a valid
+> `/check?domain=…`, and every one of them was counted as a check — inflating the single
+> number the whole funnel is judged on. A user-agent that identifies a crawler now scores
+> `checks:bot` instead. The JSON API is deliberately exempt: a script calling it *is* a
+> real user, and filtering by user-agent there would zero out its usage figure.
 
 Crawlers are counted separately as `bot:<name>` rather than discarded — Googlebot
 arriving is the first sign indexing has started, and a Slack or Twitter fetch means

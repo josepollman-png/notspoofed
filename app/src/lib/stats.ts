@@ -10,7 +10,8 @@ import { markRedisDead, redis } from './redis.js';
  *
  * One Redis hash per UTC day, expired after 90 days. Fields:
  *
- *   checks            a domain was checked (web or API)
+ *   checks            a domain was checked by an apparent human, or via the JSON API
+ *   checks:bot        … by a crawler on the web route. Counted, never conflated
  *   api               … of which came via the JSON API
  *   view:<path>       a page was rendered
  *   ref:<host>        an external referrer, host only — never the full URL
@@ -152,23 +153,33 @@ export interface TrackInput {
 }
 
 /**
- * Fire-and-forget. Never awaited by a request handler — a slow metrics write must not
- * add latency to a page, and a failed one must not surface as an error to the user.
+ * Which counters a request increments. Pure and exported so the bot/human split can be
+ * tested without a Redis — the split decides what every headline number means, and it
+ * was wrong once already.
  */
-export function track(
+export function trackFields(
   { path, referrer, selfHost, userAgent, utmSource, isCheck, viaApi }: TrackInput,
-): void {
+): string[] {
   const fields: string[] = [];
   const bot = botName(userAgent ?? null);
 
   if (isCheck) {
-    // API traffic is expected to be automated, so a bot user-agent there is normal
-    // and still a real check. Only page views get the bot/human split.
-    fields.push('checks');
-    if (viaApi) fields.push('api');
+    // A script calling the JSON API *is* a real user, so a bot user-agent there is
+    // expected and still counts as a check.
+    //
+    // The web route is different, and used not to be treated differently. The form on
+    // the landing page is a GET, so anything that submits forms produces a valid
+    // `/check?domain=…` — and every crawler that did was counted as a check. That
+    // silently inflated the single number the whole funnel is judged on, which is the
+    // worst possible metric to have wrong. Crawler checks are now counted separately
+    // rather than discarded: the volume is worth seeing, just not worth believing.
+    if (viaApi) fields.push('checks', 'api');
+    else if (bot) fields.push('checks:bot');
+    else fields.push('checks');
+
     // The funnel metric the whole content strategy rests on: did a guide reader
-    // actually go on to run a check?
-    if (isOwnGuide(referrer, selfHost)) fields.push('conv:guide');
+    // actually go on to run a check? A crawler walking our own links is not that.
+    if (!bot && isOwnGuide(referrer, selfHost)) fields.push('conv:guide');
   } else if (bot) {
     fields.push(`bot:${bot}`);
   } else {
@@ -190,12 +201,24 @@ export function track(
     else if (!host) fields.push('src:direct');
   }
 
-  void bump(fields);
+  return fields;
+}
+
+/**
+ * Fire-and-forget. Never awaited by a request handler — a slow metrics write must not
+ * add latency to a page, and a failed one must not surface as an error to the user.
+ */
+export function track(input: TrackInput): void {
+  void bump(trackFields(input));
 }
 
 export interface DayStats {
   date: string;
+  /** Checks from apparent humans, plus JSON API calls. */
   checks: number;
+  /** Checks from crawlers on the web route. Kept out of `checks` so the headline
+   *  number means what it says. */
+  checksBot: number;
   api: number;
   guideConversions: number;
   /** Page views from apparent humans only. */
@@ -228,6 +251,7 @@ export async function readStats(days = 30): Promise<DayStats[]> {
     const day: DayStats = {
       date,
       checks: Number(hash['checks'] ?? 0),
+      checksBot: Number(hash['checks:bot'] ?? 0),
       api: Number(hash['api'] ?? 0),
       guideConversions: Number(hash['conv:guide'] ?? 0),
       views: {},
