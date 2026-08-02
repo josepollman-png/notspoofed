@@ -164,7 +164,11 @@ const canonical = canonicalPath ? absoluteUrl(canonicalPath) : null;
         <p class="links">
           <a href="/about">About</a> ·
           <a href="/about#reporting-a-wrong-result">Report a wrong result</a> ·
-          <a href="/api">API</a>
+          <a href="/api">API</a> ·
+          {/* A plain anchor, not a badge or embedded star count — those load a
+              third-party image and would break the "no external requests" claim
+              two paragraphs above. */}
+          <a href="https://github.com/josepollman-png/notspoofed">Source on GitHub</a>
         </p>
       </div>
     </footer>

@@ -92,6 +92,16 @@ const contact = 'hello@notspoofed.com';
     often each page was viewed and how many checks ran — no IP addresses, no sessions,
     nothing that identifies a person or a domain.
   </p>
+  <p>
+    You do not have to take that on trust. The whole site is
+    <a href="https://github.com/josepollman-png/notspoofed">open source under the MIT
+    licence</a>, and the only code that writes anything down is
+    <a href="https://github.com/josepollman-png/notspoofed/blob/main/app/src/lib/stats.ts">
+    <code>stats.ts</code></a> — one file, and the counters it keeps are listed in the
+    README. What it cannot prove is that the running server matches the published code;
+    no public repository can. It does mean the claim is specific enough to be checked,
+    and wrong enough to be called out if it were false.
+  </p>
 
   {/* id is explicit — unlike Markdown, .astro pages generate no heading anchors,
       and the site footer links straight here. */}
