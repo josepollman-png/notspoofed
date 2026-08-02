@@ -1,0 +1,45 @@
+---
+import { getCollection } from 'astro:content';
+import DomainForm from '../../components/DomainForm.astro';
+import Base from '../../layouts/Base.astro';
+
+const guides = (await getCollection('guides')).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+---
+
+<Base
+  title="Email authentication guides — mailcheck"
+  description="Plain-English fixes for SPF, DKIM and DMARC problems: the 10-lookup limit, p=none, missing reports, and the Google and Yahoo sender requirements."
+  canonicalPath="/guides"
+>
+  <h1>Guides</h1>
+  <p class="lede">
+    Each of these starts from a problem you might be having and ends with a record
+    you can publish. No prior knowledge of email authentication assumed.
+  </p>
+
+  <ul class="guides">
+    {guides.map((guide) => (
+      <li>
+        <a href={`/guides/${guide.id}/`}>{guide.data.title}</a>
+        <p>{guide.data.description}</p>
+      </li>
+    ))}
+  </ul>
+
+  <h2>Or just check your domain</h2>
+  <DomainForm />
+</Base>
+
+<style>
+  .guides { list-style: none; margin: 32px 0 0; padding: 0; }
+  .guides li {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .guides li:first-child { border-top: 1px solid var(--border); }
+  .guides a { font-size: 17px; font-weight: 600; text-decoration: none; }
+  .guides a:hover { text-decoration: underline; }
+  .guides p { margin: 6px 0 0; color: var(--muted); max-width: 68ch; }
+</style>

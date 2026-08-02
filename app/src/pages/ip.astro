@@ -1,0 +1,204 @@
+---
+import FindingCard from '../components/FindingCard.astro';
+import Base from '../layouts/Base.astro';
+import { DnsResolver } from '../lib/dns/resolver.js';
+import type { Finding } from '../lib/findings.js';
+import { analyzeIp } from '../lib/ip/analyze.js';
+import { BLOCKLISTS } from '../lib/ip/blocklists.js';
+import { checkIp, isIpv4, isIpv6, isPublicIpv4, type IpCheckResult } from '../lib/ip/check.js';
+import { clientIp, rateLimit, RATE_LIMIT } from '../lib/ratelimit.js';
+
+const raw = (Astro.url.searchParams.get('ip') ?? '').trim();
+
+let result: IpCheckResult | null = null;
+let findings: Finding[] = [];
+let error: string | null = null;
+let limited = false;
+let elapsedMs = 0;
+let queryCount = 0;
+
+if (raw !== '') {
+  const limit = await rateLimit(clientIp(Astro.request, Astro.clientAddress));
+  if (!limit.allowed) {
+    limited = true;
+    Astro.response.status = 429;
+    Astro.response.headers.set('Retry-After', String(limit.resetIn));
+  } else if (isIpv4(raw) && !isPublicIpv4(raw)) {
+    // Private and reserved ranges cannot be sending addresses, and accepting them
+    // would let this endpoint be pointed at internal infrastructure.
+    error = `${raw} is a private or reserved address, so it cannot be a public sending IP.`;
+    Astro.response.status = 400;
+  } else if (!isIpv4(raw) && !isIpv6(raw)) {
+    error = 'Enter an IP address. To check a domain’s DNS records, use the domain checker instead.';
+    Astro.response.status = 400;
+  } else {
+    const started = Date.now();
+    const dns = new DnsResolver({ maxQueries: 80, deadlineMs: 20_000 });
+    try {
+      result = await checkIp(dns, raw);
+      findings = analyzeIp(result);
+      elapsedMs = Date.now() - started;
+      queryCount = dns.queryCount;
+    } catch {
+      error = 'The check could not be completed — usually a DNS timeout. Try again in a moment.';
+      Astro.response.status = 502;
+    }
+  }
+}
+
+Astro.response.headers.set('Cache-Control', 'private, max-age=60');
+// Only result pages are excluded. The bare /ip page is a landing page we want indexed,
+// so setting this unconditionally would deindex the very thing meant to rank.
+if (raw !== '') Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+
+const title = result ? `${result.ip} — blocklist and reverse DNS` : 'Sending IP checker — mailcheck';
+---
+
+<Base
+  title={title}
+  description="Check a sending IP against the major blocklists and verify its forward-confirmed reverse DNS."
+  canonicalPath={raw === '' ? '/ip' : undefined}
+  noindex={raw !== ''}
+>
+  <h1>Sending IP checker</h1>
+  <p class="lede">
+    Blocklist status across {BLOCKLISTS.length} major lists, plus the reverse DNS checks
+    Google and Yahoo require of anyone sending them mail.
+  </p>
+
+  <form method="get" action="/ip">
+    <div class="row">
+      <input
+        type="text" name="ip" value={raw}
+        placeholder="203.0.113.5"
+        autocomplete="off" autocapitalize="off" spellcheck="false"
+        autofocus={raw === ''} required aria-label="IP address to check"
+      />
+      <button type="submit">Check</button>
+    </div>
+  </form>
+
+  {limited && (
+    <div class="notice">
+      <h2>Slow down a moment</h2>
+      <p>{RATE_LIMIT.MAX_REQUESTS} checks per minute per address. Each one makes a few dozen DNS queries.</p>
+    </div>
+  )}
+
+  {error && <div class="notice error"><h2>That didn’t work</h2><p>{error}</p></div>}
+
+  {result && (
+    <>
+      <div class="summary">
+        <h2>{result.ip}</h2>
+        <p class="meta">
+          {result.ptr.length > 0 ? result.ptr.join(', ') : 'no reverse DNS'}
+          {result.asn && ` · AS${result.asn.number} ${result.asn.prefix} ${result.asn.country}`}
+          {` · ${queryCount} DNS queries in ${elapsedMs}ms`}
+        </p>
+      </div>
+
+      <section>{findings.map((f) => <FindingCard finding={f} />)}</section>
+
+      {result.blocklists.length > 0 && (
+        <section class="lists">
+          <h2>All lists checked</h2>
+          <table>
+            <thead><tr><th>List</th><th>Status</th><th>Code</th></tr></thead>
+            <tbody>
+              {result.blocklists.map((b) => (
+                <tr>
+                  <td>{b.list.name}<span class="zone">{b.list.zone}</span></td>
+                  <td class={b.status}>
+                    {b.status === 'listed' ? 'listed' : b.status === 'clean' ? 'not listed' : 'unknown'}
+                  </td>
+                  <td class="mono">{b.code ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p class="note">
+            “Unknown” means the list refused or failed to answer our query. It is not the
+            same as “not listed”, and we do not report it as such.
+          </p>
+        </section>
+      )}
+    </>
+  )}
+
+  {!result && !error && !limited && (
+    <section class="about">
+      <h2>What this checks</h2>
+      <dl>
+        <dt>Forward-confirmed reverse DNS</dt>
+        <dd>
+          Not just that a PTR record exists, but that the name it gives resolves back to
+          the same address. A PTR on its own proves nothing — anyone can point one
+          anywhere. Only a matching pair counts, and Google and Yahoo both require it.
+        </dd>
+        <dt>Generic reverse DNS</dt>
+        <dd>
+          Names that embed the IP address or advertise a dynamic pool are treated as a
+          strong negative signal by receivers. It is a common reason mail from an
+          otherwise clean address lands in spam.
+        </dd>
+        <dt>Blocklists</dt>
+        <dd>
+          {BLOCKLISTS.length} lists verified to be operational. Weighted honestly: a Spamhaus SBL
+          listing is an emergency, a UCEPROTECT listing usually is not, and a Spamhaus
+          PBL listing on a home connection is the system working as designed.
+        </dd>
+      </dl>
+      <p class="note">
+        Checking your <em>domain’s</em> records instead? Use the
+        <a href="/check?domain=example.com" rel="nofollow">domain checker</a>. Diagnosing
+        one specific message? Use the <a href="/headers">header analyzer</a>.
+      </p>
+    </section>
+  )}
+</Base>
+
+<style>
+  .row { display: flex; gap: 8px; }
+  input {
+    flex: 1; min-width: 0; padding: 13px 15px; font-size: 16px;
+    font-family: var(--mono);
+    color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  button {
+    padding: 13px 24px; font: inherit; font-weight: 550;
+    color: var(--bg); background: var(--accent);
+    border: 1px solid var(--accent); border-radius: var(--radius); cursor: pointer;
+  }
+  button:hover { filter: brightness(1.08); }
+  @media (max-width: 520px) { .row { flex-direction: column; } }
+
+  .summary { margin: 36px 0 24px; }
+  .summary h2 { font-size: 24px; margin: 0 0 6px; font-family: var(--mono); word-break: break-all; }
+  .meta { color: var(--muted); font-size: 13px; margin: 0; }
+
+  .notice { margin: 36px 0; }
+  .notice h2 { font-size: 20px; }
+  .notice p { color: var(--muted); max-width: 62ch; }
+  .notice.error h2 { color: var(--critical); }
+
+  .lists { margin-top: 48px; }
+  table {
+    width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px;
+    display: block; overflow-x: auto;
+  }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { font-weight: 600; }
+  .zone { display: block; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  td.listed { color: var(--critical); font-weight: 600; }
+  td.clean { color: var(--pass); }
+  td.unavailable { color: var(--warning); }
+  .mono { font-family: var(--mono); font-size: 13px; }
+
+  .about { margin-top: 48px; }
+  .about dt { font-weight: 600; margin-top: 20px; }
+  .about dd { margin: 6px 0 0; color: var(--muted); max-width: 68ch; }
+  .note { color: var(--muted); font-size: 14px; max-width: 68ch; margin-top: 20px; }
+</style>

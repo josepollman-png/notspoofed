@@ -1,0 +1,172 @@
+---
+import { absoluteUrl } from '../lib/site.js';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Path to advertise as canonical. Omit on pages that must not be indexed. */
+  canonicalPath?: string;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description = 'Free SPF, DKIM and DMARC checker that tells you exactly which record to publish.',
+  canonicalPath,
+  noindex = false,
+} = Astro.props;
+
+const canonical = canonicalPath ? absoluteUrl(canonicalPath) : null;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    {canonical && <link rel="canonical" href={canonical} />}
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    {/* This tool gets pasted into Slack threads and forum replies. Without these a
+        shared link renders as bare text and the free distribution is wasted. */}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="mailcheck" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {canonical && <meta property="og:url" content={canonical} />}
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✉️</text></svg>" />
+    <style is:global>
+      :root {
+        --bg: #fbfbfa;
+        --surface: #ffffff;
+        --border: #e4e2dd;
+        --text: #1f1e1c;
+        --muted: #6b6862;
+        --accent: #2f5d50;
+        --accent-soft: #e8f0ed;
+        --critical: #a3311f;
+        --critical-soft: #fbeae7;
+        --warning: #8a5a10;
+        --warning-soft: #fdf3e3;
+        --info: #2b4c73;
+        --info-soft: #eaf0f7;
+        --pass: #2f6b46;
+        --pass-soft: #e9f3ec;
+        --radius: 10px;
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #16171a;
+          --surface: #1e2024;
+          --border: #33363d;
+          --text: #eceae6;
+          --muted: #9a978f;
+          --accent: #7fbfa8;
+          --accent-soft: #1d2b27;
+          --critical: #f08a76;
+          --critical-soft: #2e1b18;
+          --warning: #e5b56a;
+          --warning-soft: #2c2318;
+          --info: #8fb4de;
+          --info-soft: #1a222c;
+          --pass: #86c79c;
+          --pass-soft: #17251c;
+        }
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .wrap { max-width: 800px; margin: 0 auto; padding: 0 20px; }
+
+      header.site {
+        border-bottom: 1px solid var(--border);
+        padding: 18px 0;
+        margin-bottom: 40px;
+      }
+      header.site .wrap { display: flex; align-items: baseline; gap: 12px; }
+      header.site a.brand {
+        font-weight: 650; color: var(--text); text-decoration: none; font-size: 17px;
+      }
+      header.site .tag { color: var(--muted); font-size: 13px; }
+      header.site nav { margin-left: auto; display: flex; gap: 18px; }
+      header.site nav a { color: var(--muted); text-decoration: none; font-size: 14px; }
+      header.site nav a:hover { color: var(--text); }
+
+      @media (max-width: 480px) {
+        header.site .tag { display: none; }
+      }
+
+      h1 { font-size: 30px; line-height: 1.25; margin: 0 0 12px; letter-spacing: -0.02em; }
+      h2 { font-size: 20px; margin: 40px 0 14px; letter-spacing: -0.01em; }
+      p.lede { color: var(--muted); font-size: 17px; margin: 0 0 28px; }
+
+      code, pre { font-family: var(--mono); font-size: 13px; }
+
+      footer.site {
+        margin-top: 72px; padding: 28px 0 48px;
+        border-top: 1px solid var(--border);
+        color: var(--muted); font-size: 13px;
+      }
+      footer.site a { color: var(--muted); }
+      footer.site .links { margin-top: 14px; }
+      footer.site .links a { color: var(--accent); text-decoration: none; }
+      footer.site .links a:hover { text-decoration: underline; }
+
+      a { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <header class="site">
+      <div class="wrap">
+        <a class="brand" href="/">mailcheck</a>
+        <span class="tag">SPF · DKIM · DMARC</span>
+        <nav>
+          <a href="/headers">Headers</a>
+          <a href="/ip">IP</a>
+          <a href="/guides">Guides</a>
+          <a href="/api">API</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <slot />
+    </main>
+
+    <footer class="site">
+      <div class="wrap">
+        <p>
+          Checks are read-only DNS lookups against public records. No mail is sent, and
+          the domains you check are never recorded. No cookies, no third-party scripts,
+          no advertising — we keep only anonymous daily totals of how often the site is
+          used.
+        </p>
+        <p>
+          Results are informational. Verify any record against your provider's
+          documentation before publishing it — DNS changes affect live mail delivery.
+        </p>
+        <p class="links">
+          <a href="/about">About</a> ·
+          <a href="/about#reporting-a-wrong-result">Report a wrong result</a> ·
+          <a href="/api">API</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

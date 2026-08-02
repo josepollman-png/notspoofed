@@ -1,0 +1,129 @@
+---
+import Base from '../layouts/Base.astro';
+import { RATE_LIMIT } from '../lib/ratelimit.js';
+
+const example = `{
+  "version": 1,
+  "domain": "example.com",
+  "passing": true,
+  "counts": { "critical": 0, "warning": 1, "info": 2, "pass": 3 },
+  "findings": [
+    {
+      "id": "spf-lookup-limit",
+      "severity": "critical",
+      "title": "SPF needs 14 DNS lookups — the limit is 10",
+      "detail": "Receivers stop evaluating at ten lookups…",
+      "fix": {
+        "kind": "record",
+        "host": "example.com",
+        "type": "TXT",
+        "value": "v=spf1 include:… ip4:… -all",
+        "caveat": "Flattened records are a snapshot…"
+      }
+    }
+  ],
+  "spf":    { "found": true, "lookupCount": 14, "limitExceeded": true, "suggestedRecord": "v=spf1 …" },
+  "dkim":   { "selectorsTried": 50, "wildcardDns": false, "keys": [ … ] },
+  "dmarc":  { "effectivePolicy": "reject", "externalDestinations": [ … ] },
+  "mtaSts": { "mode": "enforce", "unmatchedMx": [] },
+  "dnssec": true,
+  "meta":   { "dnsQueries": 58, "elapsedMs": 43 }
+}`;
+---
+
+<Base
+  title="JSON API — mailcheck"
+  description="A free JSON API for SPF, DKIM, DMARC, MTA-STS and DNSSEC checks. No key required."
+  canonicalPath="/api"
+>
+  <h1>JSON API</h1>
+  <p class="lede">
+    Everything the web checker does, as JSON. No key, no signup, no tracking.
+  </p>
+
+  <h2>Request</h2>
+  <pre><code>GET /api/check?domain=example.com</code></pre>
+
+  <table>
+    <thead><tr><th>Parameter</th><th>Required</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>domain</code></td><td>yes</td><td>Bare domain, URL or email address — all are accepted and normalised.</td></tr>
+      <tr><td><code>selectors</code></td><td>no</td><td>Comma-separated DKIM selectors to try in addition to the built-in list. Maximum five.</td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    CORS is open, so you can call this from a browser. <code>OPTIONS</code> is handled.
+  </p>
+
+  <h2>Response</h2>
+  <pre><code>{example}</code></pre>
+
+  <h2>Errors</h2>
+  <table>
+    <thead><tr><th>Status</th><th><code>error</code></th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>400</td><td><code>missing_domain</code></td><td>No <code>domain</code> parameter.</td></tr>
+      <tr><td>400</td><td><code>invalid_domain</code></td><td>Not a public domain name — IP addresses and internal names are rejected.</td></tr>
+      <tr><td>429</td><td><code>rate_limited</code></td><td>Over the limit. <code>Retry-After</code> is set.</td></tr>
+      <tr><td>502</td><td><code>check_failed</code></td><td>Usually a DNS timeout. Retrying is reasonable.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Limits</h2>
+  <p>
+    {RATE_LIMIT.MAX_REQUESTS} requests per {RATE_LIMIT.WINDOW_SECONDS} seconds per IP
+    address. A single check makes around 50 outbound DNS queries, which is why the
+    limit is what it is. If you need more, get in touch rather than working around it —
+    a request that explains what you are building is likely to get a yes.
+  </p>
+
+  <h2>Stability</h2>
+  <p>
+    The <code>version</code> field is the contract. Fields may be <em>added</em> within
+    a version; anything that removes or changes the meaning of an existing field will
+    increment it. The <code>findings[].id</code> values are stable identifiers — build
+    against those rather than matching on <code>title</code>, which is prose and may be
+    reworded.
+  </p>
+
+  <h2>Fair use</h2>
+  <p>
+    This runs on one small server and is free because it is cheap to provide at a
+    reasonable volume. Cache results — DNS records change on the order of months, not
+    seconds — and identify your tool in the <code>User-Agent</code> header so a problem
+    can be traced to something other than an anonymous flood.
+  </p>
+
+  <h2>Example</h2>
+  <pre><code>curl -s "https://notspoofed.com/api/check?domain=paypal.com" | jq '.findings[] | {'{'}severity, title{'}'}'</code></pre>
+</Base>
+
+<style>
+  pre {
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: 0; padding: 0; }
+  code {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 15px;
+    display: block;
+    overflow-x: auto;
+  }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  th { font-weight: 600; }
+  p { max-width: 68ch; }
+</style>

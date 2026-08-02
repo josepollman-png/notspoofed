@@ -1,0 +1,117 @@
+---
+import DomainForm from '../components/DomainForm.astro';
+import Base from '../layouts/Base.astro';
+---
+
+<Base
+  title="Check your SPF, DKIM and DMARC records — mailcheck"
+  canonicalPath="/"
+>
+  <h1>Find out why your email is failing authentication</h1>
+  <p class="lede">
+    Enter a domain. We read its public DNS records and tell you exactly what to
+    publish to fix what's broken — not just that something is.
+  </p>
+
+  <DomainForm autofocus={true} />
+
+  <section class="pitch">
+    <h2>What this checks</h2>
+    <dl>
+      <dt>SPF, counted properly</dt>
+      <dd>
+        SPF permits ten DNS lookups and no more. Past that, receivers give up and
+        your record stops working — silently, with no bounce and no warning. We walk
+        the whole <code>include:</code> chain, follow <code>redirect=</code>, and
+        show you the count. If you're over, we generate a corrected record that
+        flattens only the includes it has to.
+      </dd>
+
+      <dt>DKIM, without inventing selectors</dt>
+      <dd>
+        Selectors can't be listed from DNS, so every checker guesses. The catch is
+        that some domains answer <em>every</em> DNS query, which makes careless tools
+        report keys that don't exist. We verify each hit is genuinely a signing key,
+        and tell you plainly that a miss isn't proof DKIM is absent.
+      </dd>
+
+      <dt>DMARC, including where your reports actually go</dt>
+      <dd>
+        We check policy inheritance for subdomains, and whether third-party report
+        addresses are authorised to receive your data. That last one catches a
+        failure most tools miss entirely: a DMARC record that looks perfect while
+        the reports go nowhere.
+      </dd>
+    </dl>
+
+    <h2>Why bother</h2>
+    <p>
+      Since February 2024, Google and Yahoo require SPF, DKIM and DMARC from anyone
+      sending them bulk mail. Domains that don't comply get throttled or rejected,
+      and the failure is usually invisible from the sending side — your mail simply
+      stops arriving.
+    </p>
+
+    <h2>Already have a failing message?</h2>
+    <p>
+      The <a href="/headers">header analyzer</a> takes the raw headers from a message
+      you received and shows the delivery path, where it was delayed, and why DMARC
+      passed or failed — including the case where SPF passes but for the wrong domain,
+      which is the reason most "we have SPF" domains still fail. It runs entirely in
+      your browser; nothing is uploaded.
+    </p>
+
+    <h2>Guides</h2>
+    <p>
+      If you already know what is broken and want to understand it before you change
+      DNS, these start from the problem and end with the record:
+    </p>
+    <ul class="links">
+      <li><a href="/guides/spf-too-many-dns-lookups/">SPF: too many DNS lookups</a></li>
+      <li><a href="/guides/dmarc-p-none/">What DMARC p=none actually does</a></li>
+      <li><a href="/guides/dmarc-fails-when-spf-passes/">Why DMARC fails when SPF and DKIM pass</a></li>
+      <li><a href="/guides/dmarc-reports-not-arriving/">Your DMARC reports may be going nowhere</a></li>
+      <li><a href="/guides/google-yahoo-sender-requirements/">Google and Yahoo's sender requirements</a></li>
+      <li><a href="/guides/dkim-selectors/">Finding your DKIM selector</a></li>
+    </ul>
+
+    <h2>Try one of these</h2>
+    {/* nofollow: these are the only internal links into /check, and each crawl of a
+        result page costs ~48 DNS queries for content we do not want indexed. */}
+    <ul class="examples">
+      <li><a href="/check?domain=lyft.com" rel="nofollow">lyft.com</a> — SPF over the lookup limit</li>
+      <li><a href="/check?domain=paypal.com" rel="nofollow">paypal.com</a> — a fully configured domain</li>
+      <li><a href="/check?domain=example.com" rel="nofollow">example.com</a> — wildcard DNS that fools other checkers</li>
+    </ul>
+  </section>
+</Base>
+
+<style>
+  .pitch { margin-top: 56px; }
+
+  dl { margin: 0; }
+  dt {
+    font-weight: 600;
+    margin-top: 24px;
+    font-size: 16px;
+  }
+  dd {
+    margin: 7px 0 0;
+    color: var(--muted);
+    max-width: 68ch;
+  }
+  dd code {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .pitch > p { color: var(--muted); max-width: 68ch; }
+
+  .examples { padding-left: 18px; color: var(--muted); }
+  .examples li { margin-bottom: 6px; }
+
+  .links { padding-left: 18px; }
+  .links li { margin-bottom: 7px; }
+</style>

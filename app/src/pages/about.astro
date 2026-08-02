@@ -1,0 +1,148 @@
+---
+import Base from '../layouts/Base.astro';
+import { COMMON_SELECTORS } from '../lib/dkim/selectors.js';
+import { BLOCKLISTS } from '../lib/ip/blocklists.js';
+
+// If you want your name on this, add it to the "Who runs it" section below.
+const contact = 'hello@notspoofed.com';
+---
+
+<Base
+  title="About — mailcheck"
+  description="Who runs notspoofed.com, what it does and does not check, how to report a wrong result, and what it records about you."
+  canonicalPath="/about"
+>
+  <h1>About</h1>
+  <p class="lede">
+    A free set of email authentication tools, built because the existing free checkers
+    tell you what is broken and stop there.
+  </p>
+
+  <h2>Why it exists</h2>
+  <p>
+    Since February 2024, Google and Yahoo have required SPF, DKIM and DMARC from anyone
+    sending them mail in volume. A lot of organisations discovered at that point that
+    they had no idea what any of those were.
+  </p>
+  <p>
+    There is no shortage of tools that will tell you your SPF record exceeds the
+    ten-lookup limit. There are very few that hand you a corrected record. That gap is
+    the whole reason this exists: every finding here ends in something you can publish
+    or a specific action, not a description of the problem.
+  </p>
+
+  <h2>What it checks</h2>
+  <ul>
+    <li><a href="/">Domain checker</a> — SPF (with full include-chain evaluation and lookup counting), DKIM, DMARC, MTA-STS, TLS-RPT, BIMI and DNSSEC.</li>
+    <li><a href="/headers">Header analyzer</a> — the delivery path and hop delays of a specific message, and why DMARC passed or failed. Runs entirely in your browser.</li>
+    <li><a href="/ip">Sending IP checker</a> — {BLOCKLISTS.length} blocklists and forward-confirmed reverse DNS.</li>
+    <li><a href="/api">JSON API</a> — all of the above, no key required.</li>
+  </ul>
+
+  <h2>What it deliberately will not tell you</h2>
+  <p>
+    Overclaiming is how tools in this space lose trust, so these limits are stated here
+    as well as in the results:
+  </p>
+  <dl>
+    <dt>“No DKIM found” is not proof that DKIM is missing</dt>
+    <dd>
+      Selectors cannot be listed from DNS. We try {COMMON_SELECTORS.length} common ones
+      and say so. Some providers — Amazon SES among them — use random selectors that are
+      unguessable by construction.
+    </dd>
+
+    <dt>SPF lookup counts are worst-case</dt>
+    <dd>
+      A real evaluator stops at the first match, so a sender listed early may never reach
+      term eleven. We count the full walk, because the sender that breaks is the one in
+      the <em>last</em> include.
+    </dd>
+
+    <dt>SPF macros are counted but not resolved</dt>
+    <dd>
+      Terms like <code>exists:%&#123;i&#125;…</code> expand using the connecting server's
+      address. There is no honest static answer, so they are reported as unevaluable
+      rather than guessed.
+    </dd>
+
+    <dt>A refused blocklist query is never reported as “not listed”</dt>
+    <dd>
+      Some lists decline queries under certain conditions. When that happens you get
+      “unknown”, because a false all-clear on a tool people reach for mid-incident is
+      worse than no answer.
+    </dd>
+
+    <dt>A clean result is not a guarantee of delivery</dt>
+    <dd>
+      Dozens of private blocklists exist, and every mailbox provider runs internal
+      reputation scoring that is invisible from outside. This checks configuration, which
+      is necessary but not sufficient.
+    </dd>
+  </dl>
+
+  <h2>What it records about you</h2>
+  <p>
+    No cookies, no third-party scripts, no advertising, no accounts. The pages load no
+    JavaScript at all except the header analyzer, which needs it to parse in your browser.
+  </p>
+  <p>
+    <strong>The domains, headers and addresses you check are never stored.</strong> Header
+    analysis never leaves your browser at all. The only thing kept is a daily count of how
+    often each page was viewed and how many checks ran — no IP addresses, no sessions,
+    nothing that identifies a person or a domain.
+  </p>
+
+  {/* id is explicit — unlike Markdown, .astro pages generate no heading anchors,
+      and the site footer links straight here. */}
+  <h2 id="reporting-a-wrong-result">Reporting a wrong result</h2>
+  <p>
+    Please do. Correctness is the entire value here, and a checker that is confidently
+    wrong is worse than no checker. Several bugs have already been found by pointing the
+    tools at domains whose real configuration was known.
+  </p>
+  <p>Email <a href={`mailto:${contact}`}>{contact}</a> with:</p>
+  <ul>
+    <li>the domain, IP or headers you checked;</li>
+    <li>what the tool said;</li>
+    <li>what you believe the correct answer is, and how you know.</li>
+  </ul>
+  <p>
+    That last line matters most — the useful reports are the ones that say “the record
+    actually reads X, here is the <code>dig</code> output”.
+  </p>
+
+  <h2>Who runs it</h2>
+  <p>
+    One person, independently, on a single server. It is not backed by a vendor and does
+    not sell your results to one. There is no upsell in the findings: where a commercial
+    product genuinely is the right answer — DMARC report monitoring, for instance — it
+    says so plainly rather than steering you somewhere.
+  </p>
+  <p>
+    The checks are built directly against the RFCs (7208 for SPF, 6376 for DKIM, 7489 for
+    DMARC, 8461 for MTA-STS) and tested against a corpus of real domains whose
+    configuration is verified independently.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    <a href={`mailto:${contact}`}>{contact}</a> — bug reports, corrections, and requests
+    for a higher API rate limit if you are building something.
+  </p>
+</Base>
+
+<style>
+  h2 { margin-top: 40px; }
+  p, li { max-width: 68ch; }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 8px; }
+  dt { font-weight: 600; margin-top: 22px; }
+  dd { margin: 6px 0 0; color: var(--muted); max-width: 68ch; }
+  code {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+</style>

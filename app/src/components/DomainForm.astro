@@ -1,0 +1,95 @@
+---
+import { COMMON_SELECTORS } from '../lib/dkim/selectors.js';
+
+interface Props {
+  value?: string;
+  selectors?: string;
+  autofocus?: boolean;
+}
+const { value = '', selectors = '', autofocus = false } = Astro.props;
+---
+
+<form method="get" action="/check" class="domain-form">
+  <div class="row">
+    <input
+      type="text"
+      name="domain"
+      value={value}
+      placeholder="yourdomain.com"
+      autocomplete="url"
+      autocapitalize="off"
+      spellcheck="false"
+      autofocus={autofocus}
+      required
+      aria-label="Domain to check"
+    />
+    <button type="submit">Check</button>
+  </div>
+
+  <details class="advanced" open={selectors !== ''}>
+    <summary>Know your DKIM selector?</summary>
+    <p>
+      {/* Derived, not hardcoded: this number went stale the moment the list grew. */}
+      DKIM selectors can't be listed from DNS — we guess {COMMON_SELECTORS.length} common ones. If your
+      provider gave you a selector name we don't try, enter it here.
+    </p>
+    <input
+      type="text"
+      name="selectors"
+      value={selectors}
+      placeholder="e.g. mail1, s1024, custom-selector"
+      autocapitalize="off"
+      spellcheck="false"
+      aria-label="DKIM selectors, comma separated"
+    />
+  </details>
+</form>
+
+<style>
+  .domain-form { margin: 0 0 8px; }
+
+  .row { display: flex; gap: 8px; }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    padding: 13px 15px;
+    font-size: 16px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: transparent;
+  }
+
+  button {
+    padding: 13px 24px;
+    font-size: 16px;
+    font-family: inherit;
+    font-weight: 550;
+    color: var(--bg);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.08); }
+
+  .advanced { margin-top: 14px; font-size: 14px; }
+  .advanced summary {
+    cursor: pointer;
+    color: var(--muted);
+    width: fit-content;
+  }
+  .advanced p { color: var(--muted); margin: 10px 0; max-width: 60ch; }
+  .advanced input { width: 100%; padding: 10px 13px; font-size: 14px; }
+
+  @media (max-width: 520px) {
+    .row { flex-direction: column; }
+  }
+</style>

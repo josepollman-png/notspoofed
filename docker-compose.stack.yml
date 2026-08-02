@@ -1,0 +1,56 @@
+services:
+  # Recursive resolver of our own.
+  #
+  # Spamhaus refuses DNSBL queries that arrive via a public resolver — it answers
+  # 127.255.255.254 ("Error: open resolver") instead of a verdict, which silently
+  # removes the two most authoritative blocklists from every result. Resolving from
+  # the root servers ourselves is the supported way to use them.
+  #
+  # It also means ordinary record lookups come from authoritative servers rather than
+  # a shared public cache, so results are fresher.
+  unbound:
+    build:
+      context: ./unbound
+    container_name: mailcheck-unbound
+    restart: unless-stopped
+    networks:
+      - backend
+    mem_limit: 128m
+    cpus: 1.0
+
+  mailcheck:
+    build:
+      context: ./app
+    container_name: mailcheck
+    restart: unless-stopped
+    depends_on:
+      - unbound
+    environment:
+      PUBLIC_SITE_URL: ${MAILCHECK_SITE_URL}
+      # Resolved to an IP at startup; public resolvers stay configured as fallbacks,
+      # so a failure here degrades the blocklist checks rather than the whole site.
+      DNS_RESOLVER_HOST: unbound
+      # Shares the Redis already in the stack. Used for per-IP rate limiting and
+      # aggregate stats only — if it is unreachable the app degrades to an in-process
+      # counter rather than failing open.
+      REDIS_URL: redis://db-redis:6379/1
+      # Guards /stats. Unset or shorter than 16 characters and the route 404s, so a
+      # misconfigured deploy fails closed rather than publishing traffic figures.
+      STATS_TOKEN: ${MAILCHECK_STATS_TOKEN}
+      # Server-side page views, so the site can keep its "no JavaScript" claim.
+      # Reached over the internal network — the events never leave the box.
+      # Both must be set or the integration is a no-op; the website ID comes from
+      # Umami's UI after the site is added there.
+      UMAMI_URL: http://umami:3000
+      UMAMI_WEBSITE_ID: ${MAILCHECK_UMAMI_WEBSITE_ID:-}
+    networks:
+      - edge
+      - backend
+    mem_limit: 256m
+    cpus: 1.0
+
+networks:
+  edge:
+    external: true
+  backend:
+    external: true

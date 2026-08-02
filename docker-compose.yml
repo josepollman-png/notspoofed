@@ -1,0 +1,67 @@
+# Self-contained deployment: `docker compose up -d` and the site is on :3000.
+#
+# Everything it needs runs here, including its own resolver and Redis. If you are
+# slotting this into an existing stack that already has a reverse proxy and a Redis,
+# use docker-compose.stack.yml instead — that one joins external networks and shares
+# them rather than duplicating them.
+
+services:
+  # A recursive resolver of our own. This is not a preference; the tool is wrong
+  # without it.
+  #
+  # Spamhaus refuses DNSBL queries that arrive via a public resolver — it answers
+  # 127.255.255.254 ("Error: open resolver") rather than a verdict, which silently
+  # drops the two most authoritative blocklists out of every result. Resolving from
+  # the root servers ourselves is the supported way to query them.
+  #
+  # It also means ordinary lookups come from authoritative servers rather than a
+  # shared public cache, so results are fresher.
+  unbound:
+    build:
+      context: ./unbound
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 1.0
+
+  # Per-IP rate limiting and aggregate counters. Nothing here is durable — losing it
+  # resets the counters and nothing else, which is why there is no volume.
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    restart: unless-stopped
+    mem_limit: 160m
+
+  mailcheck:
+    build:
+      context: ./app
+    restart: unless-stopped
+    depends_on:
+      - unbound
+      - redis
+    ports:
+      # Put a TLS-terminating reverse proxy in front of this for a public deployment.
+      # See "Running it behind a reverse proxy" in the README — the rate limiter
+      # trusts X-Forwarded-For, so the proxy must overwrite it, not pass it through.
+      - "${MAILCHECK_PORT:-3000}:3000"
+    environment:
+      # Canonical links and og:url. Read at runtime, not baked at build time.
+      PUBLIC_SITE_URL: ${MAILCHECK_SITE_URL:-http://localhost:3000}
+
+      # Resolved to an IP at startup; 1.1.1.1 and 8.8.8.8 stay configured as
+      # fallbacks, so losing this degrades the blocklist checks rather than the
+      # whole site.
+      DNS_RESOLVER_HOST: unbound
+
+      # Unreachable Redis degrades to an in-process counter rather than failing open.
+      REDIS_URL: redis://redis:6379/1
+
+      # Guards /stats. Unset or shorter than 16 characters and the route 404s, so a
+      # misconfigured deploy fails closed instead of publishing traffic figures.
+      STATS_TOKEN: ${MAILCHECK_STATS_TOKEN:-}
+
+      # Optional self-hosted analytics (https://umami.is). Both must be set or the
+      # integration is a no-op, which is the default.
+      UMAMI_URL: ${MAILCHECK_UMAMI_URL:-}
+      UMAMI_WEBSITE_ID: ${MAILCHECK_UMAMI_WEBSITE_ID:-}
+    mem_limit: 256m
+    cpus: 1.0

@@ -1,0 +1,293 @@
+---
+import DomainForm from '../components/DomainForm.astro';
+import FindingCard from '../components/FindingCard.astro';
+import Base from '../layouts/Base.astro';
+import { InvalidDomainError, runCheck, type CheckResult } from '../lib/check.js';
+import { clientIp, rateLimit, RATE_LIMIT } from '../lib/ratelimit.js';
+import { siteOrigin } from '../lib/site.js';
+import { track } from '../lib/stats.js';
+
+const params = Astro.url.searchParams;
+const rawDomain = params.get('domain') ?? '';
+const rawSelectors = params.get('selectors') ?? '';
+
+const selectors = rawSelectors
+  .split(/[\s,]+/)
+  .map((s) => s.trim().toLowerCase())
+  .filter((s) => /^[a-z0-9._-]{1,63}$/.test(s))
+  .slice(0, 5);
+
+let result: CheckResult | null = null;
+let error: string | null = null;
+let limited = false;
+
+if (rawDomain.trim() === '') {
+  return Astro.redirect('/');
+}
+
+const limit = await rateLimit(clientIp(Astro.request, Astro.clientAddress));
+if (!limit.allowed) {
+  limited = true;
+  Astro.response.status = 429;
+  Astro.response.headers.set('Retry-After', String(limit.resetIn));
+} else {
+  try {
+    result = await runCheck(rawDomain, { selectors });
+    // Counted here rather than in middleware so that rate-limited and rejected
+    // requests don't inflate the number. The domain itself is never recorded.
+    track({
+      path: '/check',
+      referrer: Astro.request.headers.get('referer'),
+      selfHost: new URL(siteOrigin()).hostname,
+      isCheck: true,
+    });
+  } catch (err) {
+    if (err instanceof InvalidDomainError) {
+      error = err.message;
+      Astro.response.status = 400;
+    } else {
+      error = 'The check could not be completed. This is usually a DNS timeout — try again in a moment.';
+      Astro.response.status = 502;
+      console.error('check failed', { domain: rawDomain, err });
+    }
+  }
+}
+
+// Results reflect DNS at this instant and change when records change.
+Astro.response.headers.set('Cache-Control', 'private, max-age=60');
+
+// robots.txt already disallows /check, but a disallowed URL can still be indexed
+// without content if something links to it, and not every crawler reads robots.txt.
+// The header covers both cases and costs nothing.
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+
+const title = result
+  ? `${result.domain} — SPF, DKIM and DMARC results`
+  : 'Check a domain — mailcheck';
+
+const counts = result?.report.counts;
+const headline = !result
+  ? ''
+  : counts!.critical > 0
+    ? `${counts!.critical} critical ${counts!.critical === 1 ? 'problem' : 'problems'} found`
+    : counts!.warning > 0
+      ? `${counts!.warning} ${counts!.warning === 1 ? 'issue' : 'issues'} worth fixing`
+      : 'No problems found';
+---
+
+<Base title={title} noindex={true}>
+  <DomainForm value={result?.domain ?? rawDomain} selectors={rawSelectors} />
+
+  {limited && (
+    <div class="notice">
+      <h1>Slow down a moment</h1>
+      <p>
+        This tool allows {RATE_LIMIT.MAX_REQUESTS} checks per minute per address —
+        each one makes dozens of DNS queries. Try again in {limit.resetIn} seconds.
+      </p>
+    </div>
+  )}
+
+  {error && (
+    <div class="notice error">
+      <h1>That didn't work</h1>
+      <p>{error}</p>
+    </div>
+  )}
+
+  {result && (
+    <>
+      <div class="summary">
+        <h1>{result.domain}</h1>
+        <p class:list={['headline', counts!.critical > 0 ? 'bad' : counts!.warning > 0 ? 'mid' : 'ok']}>
+          {headline}
+        </p>
+        <p class="meta">
+          {result.queryCount} DNS queries in {result.elapsedMs}ms ·
+          SPF {result.spf.found ? `${result.spf.lookupCount}/10 lookups` : 'not published'} ·
+          DKIM {result.dkim.keys.length > 0 ? `${result.dkim.keys.length} key${result.dkim.keys.length === 1 ? '' : 's'}` : 'none found'} ·
+          DMARC {result.dmarc.record?.effectivePolicy ? `p=${result.dmarc.record.effectivePolicy}` : 'not published'} ·
+          MTA-STS {result.mtaSts.policy?.mode ?? (result.mtaSts.record ? 'record only' : 'none')} ·
+          DNSSEC {result.dnssec.unknown ? 'unknown' : result.dnssec.signed ? 'signed' : 'unsigned'}
+        </p>
+      </div>
+
+      <section>
+        {result.report.findings.map((finding) => <FindingCard finding={finding} />)}
+      </section>
+
+      {(result.spf.found || result.dmarc.record || result.dkim.keys.length > 0 || result.mtaSts.record) && (
+        <section class="records">
+          <h2>Records as published</h2>
+          {result.spf.found && (
+            <div class="rec">
+              <div class="rec-label">SPF · {result.domain}</div>
+              <pre>{result.spf.record}</pre>
+            </div>
+          )}
+          {result.dmarc.record && (
+            <div class="rec">
+              <div class="rec-label">
+                DMARC · _dmarc.{result.dmarc.record.foundAt}
+                {result.dmarc.record.inherited && ' (inherited)'}
+              </div>
+              <pre>{result.dmarc.record.raw}</pre>
+            </div>
+          )}
+          {result.mtaSts.record && (
+            <div class="rec">
+              <div class="rec-label">MTA-STS · _mta-sts.{result.domain}</div>
+              <pre>{result.mtaSts.record}</pre>
+              {result.mtaSts.policy && (
+                <pre class="policy">{[
+                  `version: ${result.mtaSts.policy.version ?? '?'}`,
+                  `mode: ${result.mtaSts.policy.mode ?? '?'}`,
+                  ...result.mtaSts.policy.mx.map((m) => `mx: ${m}`),
+                  `max_age: ${result.mtaSts.policy.maxAge ?? '?'}`,
+                ].join('\n')}</pre>
+              )}
+            </div>
+          )}
+
+          {result.tlsRpt.record && (
+            <div class="rec">
+              <div class="rec-label">TLS-RPT · _smtp._tls.{result.domain}</div>
+              <pre>{result.tlsRpt.record}</pre>
+            </div>
+          )}
+
+          {result.bimi.record && (
+            <div class="rec">
+              <div class="rec-label">BIMI · default._bimi.{result.domain}</div>
+              <pre>{result.bimi.record}</pre>
+            </div>
+          )}
+
+          {result.mx.length > 0 && (
+            <div class="rec">
+              <div class="rec-label">MX{result.nullMx ? ' · null MX — this domain accepts no mail' : ''}</div>
+              <pre>{result.nullMx ? 'MX 0 .' : result.mx
+                .slice()
+                .sort((a, b) => a.priority - b.priority)
+                .map((m) => `${m.priority}  ${m.exchange}`)
+                .join('\n')}</pre>
+            </div>
+          )}
+
+          {result.dkim.keys.length > 0 && (
+            <div class="rec">
+              <div class="rec-label">DKIM selectors found</div>
+              <ul class="selectors">
+                {result.dkim.keys.map((k) => (
+                  <li>
+                    <code>{k.selector}</code>
+                    <span>{k.provider}</span>
+                    <span>{k.revoked ? 'revoked' : `${k.keyType} ${k.bits ?? '?'}-bit`}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
+
+      {result.spf.truncated && (
+        <p class="truncated">
+          This check hit its query budget before finishing, so the SPF results above
+          are incomplete. That usually means the include chain is unusually deep.
+        </p>
+      )}
+    </>
+  )}
+</Base>
+
+<script>
+  // Copy buttons. Progressive enhancement — the record is selectable without JS.
+  document.addEventListener('click', async (event) => {
+    const button = (event.target as HTMLElement)?.closest('[data-copy]');
+    if (!(button instanceof HTMLButtonElement)) return;
+
+    const source = button.parentElement?.querySelector('[data-copy-source]');
+    if (!source?.textContent) return;
+
+    try {
+      await navigator.clipboard.writeText(source.textContent);
+      button.textContent = 'Copied';
+      button.setAttribute('data-copied', '');
+      setTimeout(() => {
+        button.textContent = 'Copy';
+        button.removeAttribute('data-copied');
+      }, 1800);
+    } catch {
+      // Clipboard blocked (insecure context, or permission denied). Select the text
+      // instead so the user can copy it by hand rather than getting silence.
+      const range = document.createRange();
+      range.selectNodeContents(source);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      button.textContent = 'Press ⌘C';
+    }
+  });
+</script>
+
+<style>
+  .summary { margin: 36px 0 28px; }
+  .summary h1 { font-size: 26px; margin-bottom: 6px; word-break: break-all; }
+
+  .headline { font-size: 17px; font-weight: 600; margin: 0 0 10px; }
+  .headline.bad { color: var(--critical); }
+  .headline.mid { color: var(--warning); }
+  .headline.ok  { color: var(--pass); }
+
+  .meta { color: var(--muted); font-size: 13px; margin: 0; }
+
+  .notice { margin: 40px 0; }
+  .notice h1 { font-size: 22px; }
+  .notice p { color: var(--muted); max-width: 62ch; }
+  .notice.error h1 { color: var(--critical); }
+
+  .records { margin-top: 48px; }
+  .rec { margin-bottom: 20px; }
+  .rec-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .rec pre {
+    margin: 0;
+    padding: 13px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.55;
+  }
+
+  .rec pre.policy {
+    margin-top: 6px;
+    background: var(--bg);
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .selectors { list-style: none; margin: 0; padding: 0; font-size: 14px; }
+  .selectors li {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .selectors li:last-child { border-bottom: 0; }
+  .selectors code { font-weight: 600; min-width: 100px; }
+  .selectors span { color: var(--muted); font-size: 13px; }
+
+  .truncated {
+    margin-top: 32px;
+    padding: 12px 14px;
+    background: var(--warning-soft);
+    border-radius: 8px;
+    font-size: 14px;
+    max-width: 68ch;
+  }
+</style>

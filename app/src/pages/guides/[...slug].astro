@@ -1,0 +1,139 @@
+---
+import { getEntry, render } from 'astro:content';
+import DomainForm from '../../components/DomainForm.astro';
+import Base from '../../layouts/Base.astro';
+import { absoluteUrl } from '../../lib/site.js';
+
+// Rendered on demand rather than prerendered. Prerendering would bake canonical and
+// og:url at build time, and the image is built without PUBLIC_SITE_URL — so every
+// guide would advertise itself as living on localhost:3000. Markdown rendering is
+// cheap enough that serving these per request costs nothing worth optimising.
+const slug = Astro.params.slug?.replace(/\/$/, '') ?? '';
+const guide = slug ? await getEntry('guides', slug) : undefined;
+
+if (!guide) {
+  return new Response('Guide not found', { status: 404 });
+}
+
+const { Content } = await render(guide);
+const path = `/guides/${guide.id}/`;
+
+// Article schema so the published/updated dates are machine-readable — staleness is
+// the main reason to distrust advice in this area, so we make the date explicit
+// rather than hiding it.
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'TechArticle',
+  headline: guide.data.title,
+  description: guide.data.description,
+  datePublished: guide.data.published.toISOString().slice(0, 10),
+  dateModified: guide.data.updated.toISOString().slice(0, 10),
+  mainEntityOfPage: { '@type': 'WebPage', '@id': absoluteUrl(path) },
+};
+
+const faqSchema = guide.data.faq && {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: guide.data.faq.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+
+const updated = guide.data.updated.toLocaleDateString('en-GB', {
+  day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+});
+---
+
+<Base
+  title={`${guide.data.title} — mailcheck`}
+  description={guide.data.description}
+  canonicalPath={path}
+>
+  {/* is:inline is explicit: these are JSON-LD data blocks, not code to be bundled.
+      Without it Astro infers the same thing but warns on every build. */}
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(articleSchema)} />
+  {faqSchema && (
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+  )}
+
+  <nav class="crumbs"><a href="/guides">Guides</a></nav>
+
+  <article>
+    <h1>{guide.data.title}</h1>
+    <p class="meta">Last checked {updated}</p>
+    <Content />
+  </article>
+
+  <aside class="cta">
+    <h2>Check your own domain</h2>
+    <p>See exactly which of these applies to you, with the record to fix it.</p>
+    <DomainForm />
+  </aside>
+</Base>
+
+<style>
+  .crumbs { margin-bottom: 20px; font-size: 14px; }
+  .crumbs a { color: var(--muted); }
+
+  article :global(h2) { font-size: 21px; margin: 36px 0 12px; }
+  article :global(h3) { font-size: 17px; margin: 28px 0 8px; }
+  article :global(p),
+  article :global(li) { max-width: 68ch; }
+  article :global(p) { margin: 0 0 16px; }
+  article :global(ul), article :global(ol) { padding-left: 22px; }
+  article :global(li) { margin-bottom: 8px; }
+
+  article :global(pre) {
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+  article :global(code) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  article :global(pre code) { background: none; border: 0; padding: 0; }
+
+  article :global(blockquote) {
+    margin: 20px 0;
+    padding: 12px 16px;
+    border-left: 3px solid var(--warning);
+    background: var(--warning-soft);
+    border-radius: 0 8px 8px 0;
+  }
+  article :global(blockquote p:last-child) { margin-bottom: 0; }
+
+  article :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 15px;
+    display: block;
+    overflow-x: auto;
+  }
+  article :global(th), article :global(td) {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  article :global(th) { font-weight: 600; }
+
+  .meta { color: var(--muted); font-size: 14px; margin: -4px 0 28px; }
+
+  .cta {
+    margin-top: 56px;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .cta h2 { margin: 0 0 6px; font-size: 18px; }
+  .cta p { margin: 0 0 16px; color: var(--muted); }
+</style>

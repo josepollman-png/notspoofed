@@ -1,0 +1,11 @@
+# Real secrets. .env.example is the tracked template.
+.env
+
+node_modules/
+dist/
+.astro/
+
+*.log
+npm-debug.log*
+
+.DS_Store

@@ -1,0 +1,357 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base
+  title="Email header analyzer — mailcheck"
+  description="Paste raw email headers to see the delivery path, hop delays, and exactly why DMARC passed or failed. Runs entirely in your browser."
+  canonicalPath="/headers"
+>
+  <h1>Email header analyzer</h1>
+  <p class="lede">
+    Paste the raw headers from a message you received. You'll get the delivery path,
+    where it was delayed, and — the part other tools skip — why DMARC passed or failed
+    even when SPF and DKIM look fine.
+  </p>
+
+  <div class="privacy">
+    <strong>Nothing is uploaded.</strong> Headers contain recipient addresses, subject
+    lines and internal hostnames, so this runs entirely in your browser. You can
+    disconnect from the network and it still works.
+  </div>
+
+  <form id="form">
+    <label for="raw">Raw headers</label>
+    <textarea
+      id="raw"
+      rows="10"
+      spellcheck="false"
+      placeholder="Delivered-To: you@example.com&#10;Received: from mail.sender.com (mail.sender.com [203.0.113.5])&#10;        by mx.google.com with ESMTPS id abc123&#10;        for &lt;you@example.com&gt;; Mon, 27 Jul 2026 09:14:22 -0700 (PDT)&#10;Authentication-Results: mx.google.com;&#10;       dkim=pass header.i=@sender.com header.s=selector1;&#10;       spf=pass smtp.mailfrom=bounce@mail.sender.com;&#10;       dmarc=fail (p=REJECT) header.from=sender.com&#10;From: Sender &lt;hello@sender.com&gt;&#10;Subject: Your receipt"></textarea>
+    <div class="actions">
+      <button type="submit">Analyze</button>
+      <button type="button" id="clear" class="secondary">Clear</button>
+    </div>
+  </form>
+
+  <div id="results" hidden></div>
+
+  <section class="how">
+    <h2>Where to find raw headers</h2>
+    <dl>
+      <dt>Gmail</dt>
+      <dd>Open the message → <strong>⋮</strong> → <strong>Show original</strong> → Copy to clipboard.</dd>
+      <dt>Outlook / Microsoft 365</dt>
+      <dd>Open the message → <strong>…</strong> → <strong>View</strong> → <strong>View message details</strong>.</dd>
+      <dt>Apple Mail</dt>
+      <dd><strong>View</strong> → <strong>Message</strong> → <strong>All Headers</strong> (⇧⌘H).</dd>
+      <dt>Thunderbird</dt>
+      <dd><strong>View</strong> → <strong>Message Source</strong> (⌘U / Ctrl+U).</dd>
+    </dl>
+    <p class="note">
+      Use a message you <em>received</em>, not one from your Sent folder. The
+      authentication verdict is added by the receiving server, so a sent copy has
+      nothing to analyse.
+    </p>
+
+    <h2>If SPF and DKIM pass but DMARC fails</h2>
+    <p class="note">
+      That is alignment, and it is the most common reason a domain with a perfectly
+      valid SPF record still fails DMARC.
+      <a href="/guides/dmarc-fails-when-spf-passes/">This guide explains it</a>, with
+      the same header block you are about to paste.
+    </p>
+  </section>
+</Base>
+
+<script>
+  import { analyzeHeaders, formatDuration } from '../lib/headers/analyze.js';
+  import { parseHeaders } from '../lib/headers/parse.js';
+
+  const form = document.getElementById('form') as HTMLFormElement;
+  const input = document.getElementById('raw') as HTMLTextAreaElement;
+  const results = document.getElementById('results') as HTMLDivElement;
+  const clearBtn = document.getElementById('clear') as HTMLButtonElement;
+
+  const LABEL = { critical: 'Critical', warning: 'Warning', info: 'Note', pass: 'Good' } as const;
+
+  /** Build an element with *text* content. Never innerHTML — every value here is
+   *  attacker-controlled if someone is analysing a hostile message. */
+  function el(tag: string, className?: string, text?: string): HTMLElement {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function alignmentLabel(a: string): string {
+    return a === 'strict' ? 'aligned (strict)' : a === 'relaxed' ? 'aligned (relaxed)' : 'not aligned';
+  }
+
+  function render(raw: string): void {
+    const parsed = parseHeaders(raw);
+    const analysis = analyzeHeaders(parsed);
+
+    results.replaceChildren();
+    results.hidden = false;
+
+    if (parsed.headers.length === 0) {
+      results.append(el('p', 'empty', 'No headers found. Paste the full raw header block.'));
+      return;
+    }
+
+    // --- summary ---
+    const summary = el('div', 'summary');
+    const verdict = analysis.dmarcResult ?? (analysis.unverified ? 'not recorded' : 'unknown');
+    const tone =
+      analysis.dmarcResult === 'pass' ? 'ok' : analysis.dmarcResult ? 'bad' : 'mid';
+    summary.append(el('h2', undefined, `DMARC: ${verdict}`));
+    (summary.lastChild as HTMLElement).classList.add(tone);
+    if (parsed.subject) summary.append(el('p', 'meta', `Subject: ${parsed.subject}`));
+    summary.append(
+      el(
+        'p',
+        'meta',
+        [
+          parsed.from ? `From ${parsed.from}` : null,
+          `${parsed.hops.length} hop${parsed.hops.length === 1 ? '' : 's'}`,
+          parsed.totalDelaySeconds !== undefined
+            ? `${formatDuration(parsed.totalDelaySeconds)} in transit`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+      ),
+    );
+    results.append(summary);
+
+    // --- findings ---
+    for (const f of analysis.findings) {
+      const card = el('article', `finding ${f.severity}`);
+      const head = el('div', 'head');
+      head.append(el('span', 'badge', LABEL[f.severity]));
+      head.append(el('h3', undefined, f.title));
+      card.append(head, el('p', 'detail', f.detail));
+
+      if (f.fix && f.fix.kind === 'action') {
+        const ol = el('ol', 'steps');
+        for (const step of f.fix.steps) ol.append(el('li', undefined, step));
+        card.append(ol);
+      }
+      results.append(card);
+    }
+
+    // --- alignment ---
+    const align = el('section', 'block');
+    align.append(el('h2', undefined, 'Alignment'));
+    align.append(
+      el(
+        'p',
+        'note',
+        'DMARC needs the domain that authenticated to match the From: domain your recipient sees. This is where most failures come from.',
+      ),
+    );
+
+    const table = el('table');
+    const thead = el('thead');
+    const hr = el('tr');
+    for (const h of ['Mechanism', 'Result', 'Authenticated domain', 'From domain', 'Alignment']) {
+      hr.append(el('th', undefined, h));
+    }
+    thead.append(hr);
+    table.append(thead);
+
+    const tbody = el('tbody');
+    const rows: Array<[string, string | undefined, string | undefined, string]> = [
+      ['SPF', analysis.spf.result, analysis.spf.authenticatedDomain, analysis.spf.alignment],
+      ...analysis.dkim.map(
+        (d) => ['DKIM', d.result, d.authenticatedDomain, d.alignment] as [string, string | undefined, string | undefined, string],
+      ),
+    ];
+    if (analysis.dkim.length === 0) rows.push(['DKIM', undefined, undefined, 'none']);
+
+    for (const [mech, result, domain, alignment] of rows) {
+      const tr = el('tr');
+      tr.append(el('td', undefined, mech));
+      tr.append(el('td', undefined, result ?? '—'));
+      tr.append(el('td', 'mono', domain ?? '—'));
+      tr.append(el('td', 'mono', parsed.fromDomain ?? '—'));
+      const a = el('td', alignment === 'none' ? 'bad' : 'ok', alignmentLabel(alignment));
+      tr.append(a);
+      tbody.append(tr);
+    }
+    table.append(tbody);
+    align.append(table);
+    results.append(align);
+
+    // --- delivery path ---
+    if (parsed.hops.length > 0) {
+      const path = el('section', 'block');
+      path.append(el('h2', undefined, 'Delivery path'));
+      const ol = el('ol', 'hops');
+      for (const hop of parsed.hops) {
+        const li = el('li');
+        const line = el('div', 'hop-line');
+        line.append(el('span', 'hop-n', String(hop.index)));
+        line.append(el('span', 'mono', hop.by ?? hop.from ?? 'unknown host'));
+        if (hop.delaySeconds !== undefined) {
+          const d = el('span', hop.delaySeconds > 60 ? 'delay slow' : 'delay', `+${formatDuration(hop.delaySeconds)}`);
+          line.append(d);
+        }
+        li.append(line);
+        if (hop.from) li.append(el('div', 'hop-sub', `from ${hop.from}`));
+        if (hop.date) li.append(el('div', 'hop-sub', hop.date.toUTCString()));
+        ol.append(li);
+      }
+      path.append(ol);
+      results.append(path);
+    }
+
+    // --- follow-through to the DNS checker ---
+    if (parsed.fromDomain) {
+      const cta = el('section', 'cta');
+      cta.append(el('h2', undefined, 'Check the sender’s DNS'));
+      cta.append(
+        el('p', undefined, `These headers show what happened to one message. Check how ${parsed.fromDomain} is configured overall:`),
+      );
+      const a = document.createElement('a');
+      a.className = 'button';
+      a.href = `/check?domain=${encodeURIComponent(parsed.fromDomain)}`;
+      a.rel = 'nofollow';
+      a.textContent = `Check ${parsed.fromDomain}`;
+      cta.append(a);
+      results.append(cta);
+    }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const raw = input.value.trim();
+    if (raw === '') return;
+    render(raw);
+    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    results.replaceChildren();
+    results.hidden = true;
+    input.focus();
+  });
+</script>
+
+<style>
+  .privacy {
+    margin: 0 0 24px;
+    padding: 12px 14px;
+    background: var(--pass-soft);
+    border-radius: 8px;
+    font-size: 14px;
+    max-width: 68ch;
+  }
+  .privacy strong { color: var(--pass); }
+
+  label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+  textarea {
+    width: 100%;
+    padding: 13px 15px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    resize: vertical;
+  }
+  textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  button {
+    padding: 11px 22px;
+    font: inherit;
+    font-weight: 550;
+    color: var(--bg);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  button.secondary { color: var(--muted); background: transparent; border-color: var(--border); }
+  button:hover { filter: brightness(1.08); }
+
+  .how { margin-top: 56px; }
+  .how dt { font-weight: 600; margin-top: 16px; }
+  .how dd { margin: 4px 0 0; color: var(--muted); }
+  .note { color: var(--muted); font-size: 14px; max-width: 68ch; }
+
+  /* Results are built in JS, so these are global rather than scoped. */
+  :global(#results) { margin-top: 40px; }
+  :global(#results .summary) { margin-bottom: 24px; }
+  :global(#results .summary h2) { margin: 0 0 6px; font-size: 22px; }
+  :global(#results .summary h2.ok) { color: var(--pass); }
+  :global(#results .summary h2.bad) { color: var(--critical); }
+  :global(#results .summary h2.mid) { color: var(--warning); }
+  :global(#results .meta) { color: var(--muted); font-size: 14px; margin: 0 0 4px; }
+
+  :global(#results .finding) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 12px;
+  }
+  :global(#results .finding.critical) { border-left-color: var(--critical); }
+  :global(#results .finding.warning) { border-left-color: var(--warning); }
+  :global(#results .finding.info) { border-left-color: var(--info); }
+  :global(#results .finding.pass) { border-left-color: var(--pass); }
+  :global(#results .head) { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  :global(#results .badge) {
+    font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 20px; white-space: nowrap;
+  }
+  :global(#results .critical .badge) { color: var(--critical); background: var(--critical-soft); }
+  :global(#results .warning .badge)  { color: var(--warning);  background: var(--warning-soft); }
+  :global(#results .info .badge)     { color: var(--info);     background: var(--info-soft); }
+  :global(#results .pass .badge)     { color: var(--pass);     background: var(--pass-soft); }
+  :global(#results .finding h3) { margin: 0; font-size: 15px; font-weight: 600; }
+  :global(#results .detail) { margin: 8px 0 0; color: var(--muted); font-size: 15px; max-width: 68ch; }
+  :global(#results .steps) { margin: 12px 0 0; padding-left: 20px; color: var(--muted); font-size: 14px; }
+  :global(#results .steps li) { margin-bottom: 6px; max-width: 66ch; }
+
+  :global(#results .block) { margin-top: 40px; }
+  :global(#results table) {
+    width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px;
+    display: block; overflow-x: auto;
+  }
+  :global(#results th), :global(#results td) {
+    text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  :global(#results .mono) { font-family: var(--mono); font-size: 13px; }
+  :global(#results td.ok) { color: var(--pass); }
+  :global(#results td.bad) { color: var(--critical); }
+
+  :global(#results .hops) { list-style: none; margin: 12px 0 0; padding: 0; }
+  :global(#results .hops li) {
+    padding: 10px 0 10px 14px; border-left: 2px solid var(--border); margin-left: 6px;
+  }
+  :global(#results .hop-line) { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  :global(#results .hop-n) {
+    font-size: 12px; color: var(--muted); min-width: 18px;
+  }
+  :global(#results .hop-sub) { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+  :global(#results .delay) { font-size: 12px; color: var(--muted); }
+  :global(#results .delay.slow) { color: var(--warning); font-weight: 600; }
+
+  :global(#results .cta) {
+    margin-top: 40px; padding: 20px 22px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  :global(#results .cta h2) { margin: 0 0 6px; font-size: 17px; }
+  :global(#results .cta p) { margin: 0 0 14px; color: var(--muted); }
+  :global(#results a.button) {
+    display: inline-block; padding: 10px 20px; font-weight: 550;
+    color: var(--bg); background: var(--accent); border-radius: var(--radius); text-decoration: none;
+  }
+  :global(#results .empty) { color: var(--muted); }
+</style>
