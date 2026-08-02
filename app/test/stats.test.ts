@@ -38,6 +38,15 @@ describe('check counting: bot vs human', () => {
       .not.toContain('conv:guide');
   });
 
+  it('treats a missing user-agent as a crawler', () => {
+    // Every real browser sends one. This is also why `userAgent` is a required field
+    // on TrackInput: when it was optional, both check routes omitted it and every web
+    // check landed in checks:bot — the same bug, mirrored.
+    const f = trackFields({ ...base, userAgent: null, isCheck: true });
+    expect(f).toContain('checks:bot');
+    expect(f).not.toContain('checks');
+  });
+
   it('separates page views the same way', () => {
     expect(trackFields({ ...base, path: '/', userAgent: CRAWLER })).toContain('bot:googlebot');
     expect(trackFields({ ...base, path: '/', userAgent: HUMAN })).toContain('view:/');

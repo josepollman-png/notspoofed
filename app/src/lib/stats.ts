@@ -144,7 +144,14 @@ export interface TrackInput {
   path: string;
   referrer: string | null;
   selfHost: string;
-  userAgent?: string | null;
+  /**
+   * Required, not optional — a missing user-agent scores as the `no-user-agent`
+   * crawler, so a call site that simply forgot to pass it silently files every event
+   * under bot traffic. That is exactly what happened when `checks` gained a bot split:
+   * both check routes omitted it and every web check became a crawler check. Making it
+   * mandatory turns that into a compile error.
+   */
+  userAgent: string | null;
   /** `utm_source` from the query string, if present. */
   utmSource?: string | null;
   /** True for /check and /api/check. */

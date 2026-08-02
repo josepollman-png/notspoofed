@@ -38,6 +38,7 @@ if (!limit.allowed) {
     track({
       path: '/check',
       referrer: Astro.request.headers.get('referer'),
+      userAgent: Astro.request.headers.get('user-agent'),
       selfHost: new URL(siteOrigin()).hostname,
       isCheck: true,
     });
