@@ -7,6 +7,9 @@ interface Props {
   /** Path to advertise as canonical. Omit on pages that must not be indexed. */
   canonicalPath?: string;
   noindex?: boolean;
+  /** Root-relative path to a 1200x630 card. Omit to use the site-wide default. */
+  image?: string;
+  imageAlt?: string;
 }
 
 const {
@@ -14,9 +17,16 @@ const {
   description = 'Free SPF, DKIM and DMARC checker that tells you exactly which record to publish.',
   canonicalPath,
   noindex = false,
+  image = '/og-default.png',
+  imageAlt = 'notspoofed.com — find out why your email is failing authentication.',
 } = Astro.props;
 
 const canonical = canonicalPath ? absoluteUrl(canonicalPath) : null;
+
+/* Absolute, because several scrapers (LinkedIn among them) will not resolve a relative
+   og:image against the page URL and simply render no card. `absoluteUrl` reads the
+   origin at runtime for the reason given in lib/site.ts. */
+const imageUrl = absoluteUrl(image);
 ---
 
 <!doctype html>
@@ -37,10 +47,22 @@ const canonical = canonicalPath ? absoluteUrl(canonicalPath) : null;
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     {canonical && <meta property="og:url" content={canonical} />}
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={imageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✉️</text></svg>" />
+    <meta name="twitter:image" content={imageUrl} />
+
+    {/* SVG first for anything modern, 32px PNG for the browsers that ignore it. Both are
+        served from our own origin — the emoji data-URI this replaces rendered as a blank
+        square in Safari and in several Windows contexts. */}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <style is:global>
       :root {
         --bg: #fbfbfa;

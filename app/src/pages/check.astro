@@ -4,7 +4,7 @@ import FindingCard from '../components/FindingCard.astro';
 import Base from '../layouts/Base.astro';
 import { InvalidDomainError, runCheck, type CheckResult } from '../lib/check.js';
 import { clientIp, rateLimit, RATE_LIMIT } from '../lib/ratelimit.js';
-import { siteOrigin } from '../lib/site.js';
+import { absoluteUrl, siteOrigin } from '../lib/site.js';
 import { track } from '../lib/stats.js';
 
 const params = Astro.url.searchParams;
@@ -111,6 +111,19 @@ const headline = !result
           MTA-STS {result.mtaSts.policy?.mode ?? (result.mtaSts.record ? 'record only' : 'none')} ·
           DNSSEC {result.dnssec.unknown ? 'unknown' : result.dnssec.signed ? 'signed' : 'unsigned'}
         </p>
+
+        {/* Rebuilt from the checked domain rather than read from location.href, so a
+            selectors= parameter or an inbound utm_* tag is not copied along with it.
+            The URL sits in a visually-hidden element so the page's existing delegated
+            copy handler can find it exactly as it finds a DNS record — same mechanism,
+            same feedback, no second implementation. It stays in the layout (rather than
+            display:none) so the no-clipboard fallback can still select it. */}
+        <p class="share">
+          <span class="sr-only" data-copy-source>{absoluteUrl(`/check?domain=${encodeURIComponent(result.domain)}`)}</span>
+          <button type="button" class="copy quiet" data-copy aria-label={`Copy link to the results for ${result.domain}`}>
+            Copy link to these results
+          </button>
+        </p>
       </div>
 
       <section>
@@ -211,12 +224,16 @@ const headline = !result
     const source = button.parentElement?.querySelector('[data-copy-source]');
     if (!source?.textContent) return;
 
+    // Restore whatever the label was, not a hardcoded 'Copy' — the share button below
+    // the summary reuses this handler and says something longer.
+    const label = button.textContent;
+
     try {
-      await navigator.clipboard.writeText(source.textContent);
+      await navigator.clipboard.writeText(source.textContent.trim());
       button.textContent = 'Copied';
       button.setAttribute('data-copied', '');
       setTimeout(() => {
-        button.textContent = 'Copy';
+        button.textContent = label;
         button.removeAttribute('data-copied');
       }, 1800);
     } catch {
@@ -242,6 +259,36 @@ const headline = !result
   .headline.ok  { color: var(--pass); }
 
   .meta { color: var(--muted); font-size: 13px; margin: 0; }
+
+  /* Same token values as the Copy buttons on the record blocks. They cannot be shared
+     directly because Astro scopes component styles, and those are positioned over their
+     <pre>; this one sits in the flow. */
+  .share { margin: 14px 0 0; }
+  .copy.quiet {
+    padding: 5px 11px;
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: 550;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .copy.quiet:hover { color: var(--text); }
+  .copy.quiet[data-copied] { color: var(--pass); border-color: var(--pass); }
+  .copy.quiet:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Off-screen but still laid out, so the clipboard fallback can put a selection range
+     over it. `display: none` would make that silently do nothing. */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 
   .notice { margin: 40px 0; }
   .notice h1 { font-size: 22px; }

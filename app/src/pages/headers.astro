@@ -66,6 +66,7 @@ import Base from '../layouts/Base.astro';
 </Base>
 
 <script>
+  import { guideFor, guideHref } from '../lib/guide-links.js';
   import { analyzeHeaders, formatDuration } from '../lib/headers/analyze.js';
   import { parseHeaders } from '../lib/headers/parse.js';
 
@@ -139,6 +140,19 @@ import Base from '../layouts/Base.astro';
         for (const step of f.fix.steps) ol.append(el('li', undefined, step));
         card.append(ol);
       }
+
+      // Same mapping the server-rendered cards use. It is plain data with no server
+      // imports precisely so it can be reached from here.
+      const guide = guideFor(f.id);
+      if (guide) {
+        const p = el('p', 'guide');
+        const a = document.createElement('a');
+        a.href = guideHref(guide);
+        a.textContent = `Read: ${guide.title}`;
+        p.append(a);
+        card.append(p);
+      }
+
       results.append(card);
     }
 
@@ -317,6 +331,9 @@ import Base from '../layouts/Base.astro';
   :global(#results .info .badge)     { color: var(--info);     background: var(--info-soft); }
   :global(#results .pass .badge)     { color: var(--pass);     background: var(--pass-soft); }
   :global(#results .finding h3) { margin: 0; font-size: 15px; font-weight: 600; }
+  :global(#results .finding .guide) { margin: 14px 0 0; font-size: 14px; }
+  :global(#results .finding .guide a) { color: var(--accent); text-decoration: none; }
+  :global(#results .finding .guide a:hover) { text-decoration: underline; }
   :global(#results .detail) { margin: 8px 0 0; color: var(--muted); font-size: 15px; max-width: 68ch; }
   :global(#results .steps) { margin: 12px 0 0; padding-left: 20px; color: var(--muted); font-size: 14px; }
   :global(#results .steps li) { margin-bottom: 6px; max-width: 66ch; }

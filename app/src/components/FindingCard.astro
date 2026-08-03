@@ -1,8 +1,11 @@
 ---
 import type { Finding } from '../lib/findings.js';
+import { guideFor, guideHref } from '../lib/guide-links.js';
 
 interface Props { finding: Finding }
 const { finding } = Astro.props;
+
+const guide = guideFor(finding.id);
 
 const LABEL: Record<Finding['severity'], string> = {
   critical: 'Critical',
@@ -43,6 +46,13 @@ const LABEL: Record<Finding['severity'], string> = {
         {finding.fix.steps.map((step) => <li>{step}</li>)}
       </ol>
     </div>
+  )}
+
+  {/* Last, so it never pushes the copyable record further down the card. */}
+  {guide && (
+    <p class="guide">
+      <a href={guideHref(guide)}>Read: {guide.title}</a>
+    </p>
   )}
 </article>
 
@@ -120,6 +130,10 @@ const LABEL: Record<Finding['severity'], string> = {
   }
   .copy:hover { color: var(--text); }
   .copy[data-copied] { color: var(--pass); border-color: var(--pass); }
+
+  .guide { margin: 14px 0 0; font-size: 14px; }
+  .guide a { color: var(--accent); text-decoration: none; }
+  .guide a:hover { text-decoration: underline; }
 
   .caveat {
     margin: 12px 0 0;
