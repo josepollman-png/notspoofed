@@ -60,6 +60,33 @@ export function campaignQuery(params: URLSearchParams): string {
   return query === '' ? '' : `?${query}`;
 }
 
+/**
+ * Referrer with the query string removed.
+ *
+ * The `Referer` header is a whole URL, and Umami splits it into `referrer_path` and
+ * `referrer_query` and stores both. A visitor reading a result at
+ * `/check?domain=acme.com` who then clicks through to a guide sends that entire URL —
+ * so the domain they looked up ends up in the analytics database, which is the one thing
+ * the site promises never happens. It did: `domain=roundup-tracker.org&selectors=` was
+ * sitting in `referrer_query` before this existed.
+ *
+ * Stripping only our own `/check` would be enough for that case and wrong in general:
+ * an external referrer's query string can carry a search term, a session token, or a
+ * webmail URL. Nothing downstream needs a query string to attribute a referral, so none
+ * is ever sent. Origin and path only.
+ */
+export function safeReferrer(referrer: string | null): string | null {
+  if (!referrer) return null;
+  try {
+    const url = new URL(referrer);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    // Not a URL we can reason about, so not a URL we forward.
+    return null;
+  }
+}
+
 export interface UmamiEvent {
   /** Path, plus at most the campaign tags from `campaignQuery`. Never the raw query
    *  string — it can carry a checked domain or an address. */
@@ -107,7 +134,9 @@ export function sendUmami(event: UmamiEvent): void {
         website,
         hostname: event.hostname,
         url: event.url,
-        referrer: event.referrer ?? '',
+        // Sanitised here rather than at the call site: this is the only place a referrer
+        // leaves the process, so it is the only place the guarantee can be enforced.
+        referrer: safeReferrer(event.referrer) ?? '',
         title: event.title ?? '',
       },
     }),

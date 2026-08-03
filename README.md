@@ -80,7 +80,7 @@ npm run dev            # http://localhost:4321
 ```
 
 ```sh
-npm test               # 179 offline tests, no network
+npm test               # 184 offline tests, no network
 npm run test:live      # 12 live-DNS tests against real domains
 npm run check          # astro check / typecheck — must stay at 0 errors
 npm run build && npm run preview

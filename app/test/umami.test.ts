@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { campaignQuery } from '../src/lib/umami.js';
+import { campaignQuery, safeReferrer } from '../src/lib/umami.js';
 
 const q = (search: string) => campaignQuery(new URLSearchParams(search));
 
@@ -43,5 +43,41 @@ describe('campaign query passthrough', () => {
   it('accepts the punctuation real campaign tags use', () => {
     expect(q('utm_campaign=summer sale')).toBe('?utm_campaign=summer+sale');
     expect(q('utm_campaign=v1.2_launch-b')).toBe('?utm_campaign=v1.2_launch-b');
+  });
+});
+
+describe('referrer sanitising', () => {
+  it('never forwards a query string', () => {
+    // The bug this exists for: a visitor reading /check?domain=acme.com who clicks a
+    // guide link sends that whole URL as their Referer, and Umami stores the query in
+    // referrer_query. A real checked domain was found sitting in that column.
+    expect(safeReferrer('https://notspoofed.com/check?domain=acme.com&selectors=s1'))
+      .toBe('https://notspoofed.com/check');
+  });
+
+  it('strips external query strings too, not just our own', () => {
+    // A search term, a session token or a webmail URL is no more ours to keep than a
+    // checked domain is.
+    expect(safeReferrer('https://www.google.com/search?q=why+is+my+dmarc+failing'))
+      .toBe('https://www.google.com/search');
+    expect(safeReferrer('https://mail.example.com/inbox?token=abc123'))
+      .toBe('https://mail.example.com/inbox');
+  });
+
+  it('keeps what attribution actually needs', () => {
+    expect(safeReferrer('https://news.ycombinator.com/item')).toBe('https://news.ycombinator.com/item');
+    expect(safeReferrer('https://reddit.com/r/sysadmin/')).toBe('https://reddit.com/r/sysadmin/');
+  });
+
+  it('drops fragments, which can carry as much as a query does', () => {
+    expect(safeReferrer('https://example.com/page#domain=acme.com')).toBe('https://example.com/page');
+  });
+
+  it('forwards nothing it cannot parse or does not trust', () => {
+    expect(safeReferrer(null)).toBeNull();
+    expect(safeReferrer('')).toBeNull();
+    expect(safeReferrer('not a url')).toBeNull();
+    expect(safeReferrer('javascript:alert(1)')).toBeNull();
+    expect(safeReferrer('data:text/html,<b>x</b>')).toBeNull();
   });
 });
