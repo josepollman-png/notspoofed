@@ -33,7 +33,7 @@ const canonical = canonicalPath ? absoluteUrl(canonicalPath) : null;
     {/* This tool gets pasted into Slack threads and forum replies. Without these a
         shared link renders as bare text and the free distribution is wasted. */}
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="mailcheck" />
+    <meta property="og:site_name" content="notspoofed.com" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     {canonical && <meta property="og:url" content={canonical} />}
@@ -110,6 +110,10 @@ const canonical = canonicalPath ? absoluteUrl(canonicalPath) : null;
 
       @media (max-width: 480px) {
         header.site .tag { display: none; }
+        /* The wordmark is five characters longer than the nav was laid out for, and
+           the header row does not wrap. Without these it overflows at 360px. */
+        header.site a.brand { font-size: 15px; }
+        header.site nav { gap: 14px; }
       }
 
       h1 { font-size: 30px; line-height: 1.25; margin: 0 0 12px; letter-spacing: -0.02em; }
@@ -134,7 +138,7 @@ const canonical = canonicalPath ? absoluteUrl(canonicalPath) : null;
   <body>
     <header class="site">
       <div class="wrap">
-        <a class="brand" href="/">mailcheck</a>
+        <a class="brand" href="/">notspoofed.com</a>
         <span class="tag">SPF · DKIM · DMARC</span>
         <nav>
           <a href="/headers">Headers</a>

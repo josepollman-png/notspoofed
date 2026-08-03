@@ -51,7 +51,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=60');
 // so setting this unconditionally would deindex the very thing meant to rank.
 if (raw !== '') Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
 
-const title = result ? `${result.ip} — blocklist and reverse DNS` : 'Sending IP checker — mailcheck';
+const title = result ? `${result.ip} — blocklist and reverse DNS` : 'Sending IP checker — notspoofed.com';
 ---
 
 <Base

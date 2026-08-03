@@ -64,7 +64,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
 
 const title = result
   ? `${result.domain} — SPF, DKIM and DMARC results`
-  : 'Check a domain — mailcheck';
+  : 'Check a domain — notspoofed.com';
 
 const counts = result?.report.counts;
 const headline = !result
