@@ -4,7 +4,7 @@ description: "What Google and Yahoo have required from senders since February 20
 question: "What are the Google and Yahoo bulk sender requirements?"
 published: 2026-07-31
 updated: 2026-07-31
-order: 40
+order: 12
 faq:
   - q: "What do Google and Yahoo require from bulk senders?"
     a: "SPF and DKIM on the sending domain, a DMARC record with at least p=none, alignment between the visible From domain and the authenticated domain, one-click unsubscribe on marketing mail, and a spam complaint rate below 0.3 percent."

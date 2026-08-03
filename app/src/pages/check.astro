@@ -39,6 +39,7 @@ if (!limit.allowed) {
       path: '/check',
       referrer: Astro.request.headers.get('referer'),
       userAgent: Astro.request.headers.get('user-agent'),
+      clientIp: clientIp(Astro.request, Astro.clientAddress),
       selfHost: new URL(siteOrigin()).hostname,
       isCheck: true,
     });

@@ -1,3 +1,4 @@
+import { isDatacenterIp } from './origin-asn.js';
 import { markRedisDead, redis } from './redis.js';
 
 /**
@@ -14,8 +15,17 @@ import { markRedisDead, redis } from './redis.js';
  *   checks:bot        … by a crawler on the web route. Counted, never conflated
  *   api               … of which came via the JSON API
  *   view:<path>       a page was rendered
+ *   bot:<name>        a crawler hit, by name. `datacenter` is the ASN filter, not a
+ *                     self-identified crawler — see below
  *   ref:<host>        an external referrer, host only — never the full URL
+ *   src:<source>      campaign attribution from ?utm_source=, plus a `direct` bucket
  *   conv:guide        a check whose referrer was one of our own guides
+ *
+ * Automation is identified two ways, and they are counted separately on purpose. The
+ * user-agent list catches whatever admits to being a robot. The origin-AS check catches
+ * what does not: the traffic that made the first weeks of numbers meaningless presented
+ * ordinary Chrome and Safari strings from rented servers. Keeping `bot:datacenter`
+ * distinct means the newer, more fallible filter can be audited rather than trusted.
  */
 
 const TTL_DAYS = 90;
@@ -115,9 +125,28 @@ const BOTS: ReadonlyArray<[RegExp, string]> = [
   [/bot\b|crawler|spider|scrapy|curl\/|wget\/|python-requests|go-http-client/i, 'other-bot'],
 ];
 
+/**
+ * User-agents describing a browser that cannot be making this request.
+ *
+ * Scanners rotate through a canned list of strings harvested years ago, and the list has
+ * not aged. Windows Vista and Windows NT 6.1 are long past their last Chrome release,
+ * Trident/MSIE is retired, and PhantomJS and HeadlessChrome say what they are. None of
+ * these can be a person browsing today.
+ *
+ * Version-independent patterns only. "Chrome below N" would need maintaining forever and
+ * would eventually libel somebody's genuinely old machine.
+ */
+const IMPOSSIBLE_AGENTS: readonly RegExp[] = [
+  /Windows NT (5\.[01]|6\.0)\).*Chrome\//i, // Chrome on XP / Vista
+  /Windows NT 6\.1\).*Chrome\/(1[0-9]{2}|[89][0-9])\./i, // modern Chrome on Windows 7
+  /Trident\/|MSIE \d/i, // Internet Explorer
+  /HeadlessChrome|PhantomJS|Electron\//i, // announced automation
+];
+
 export function botName(userAgent: string | null): string | null {
   if (!userAgent) return 'no-user-agent';
   for (const [pattern, name] of BOTS) if (pattern.test(userAgent)) return name;
+  for (const pattern of IMPOSSIBLE_AGENTS) if (pattern.test(userAgent)) return 'impossible-agent';
   return null;
 }
 
@@ -152,11 +181,24 @@ export interface TrackInput {
    * mandatory turns that into a compile error.
    */
   userAgent: string | null;
+  /**
+   * Required for the same reason as `userAgent`: the datacenter check is worthless if a
+   * call site can quietly not participate in it, and silently-not-filtering is the exact
+   * failure mode that made these numbers wrong the first time.
+   */
+  clientIp: string | null;
   /** `utm_source` from the query string, if present. */
   utmSource?: string | null;
   /** True for /check and /api/check. */
   isCheck?: boolean;
   viaApi?: boolean;
+}
+
+/** Resolved by `track` before counting. Separate from TrackInput so `trackFields` stays
+ *  pure and synchronous — it is the part worth testing exhaustively. */
+export interface TrackContext {
+  /** Origin AS is a known hosting network. False when unknown. */
+  fromDatacenter?: boolean;
 }
 
 /**
@@ -166,9 +208,13 @@ export interface TrackInput {
  */
 export function trackFields(
   { path, referrer, selfHost, userAgent, utmSource, isCheck, viaApi }: TrackInput,
+  { fromDatacenter = false }: TrackContext = {},
 ): string[] {
   const fields: string[] = [];
-  const bot = botName(userAgent ?? null);
+  // A rented machine presenting a browser string is the case user-agent matching cannot
+  // reach, and it was most of the traffic. Named rather than merged into `other-bot` so
+  // the two filters can be told apart in the readout — including if this one is wrong.
+  const bot = botName(userAgent ?? null) ?? (fromDatacenter ? 'datacenter' : null);
 
   if (isCheck) {
     // A script calling the JSON API *is* a real user, so a bot user-agent there is
@@ -214,9 +260,22 @@ export function trackFields(
 /**
  * Fire-and-forget. Never awaited by a request handler — a slow metrics write must not
  * add latency to a page, and a failed one must not surface as an error to the user.
+ *
+ * The ASN lookup happens inside that detached promise for the same reason: it is a DNS
+ * query, cached per /24 for a week, and the page must not wait for it.
  */
-export function track(input: TrackInput): void {
-  void bump(trackFields(input));
+export function track(input: TrackInput, context?: TrackContext): void {
+  void (async () => {
+    const ctx = context
+      ?? { fromDatacenter: await isDatacenterIp(input.clientIp).catch(() => false) };
+    await bump(trackFields(input, ctx));
+  })();
+}
+
+/** Exported so a caller that needs the same verdict for something else — the middleware
+ *  gates its Umami send on it — can resolve it once and hand it to `track`. */
+export async function trafficContext(clientIp: string | null): Promise<TrackContext> {
+  return { fromDatacenter: await isDatacenterIp(clientIp).catch(() => false) };
 }
 
 export interface DayStats {

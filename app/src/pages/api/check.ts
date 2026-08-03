@@ -66,6 +66,7 @@ export const GET: APIRoute = async ({ request, url, clientAddress }) => {
       path: '/api/check',
       referrer: request.headers.get('referer'),
       userAgent: request.headers.get('user-agent'),
+      clientIp: clientIp(request, clientAddress),
       selfHost: new URL(siteOrigin()).hostname,
       isCheck: true,
       viaApi: true,

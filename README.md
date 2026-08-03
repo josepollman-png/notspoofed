@@ -80,7 +80,7 @@ npm run dev            # http://localhost:4321
 ```
 
 ```sh
-npm test               # 155 offline tests, no network
+npm test               # 172 offline tests, no network
 npm run test:live      # 12 live-DNS tests against real domains
 npm run check          # astro check / typecheck — must stay at 0 errors
 npm run build && npm run preview
@@ -268,6 +268,7 @@ Instead `src/lib/stats.ts` keeps aggregate counters in Redis:
 | `conv:guide` | **A check whose referrer was one of our own guides** — the funnel metric the content strategy rests on |
 | `view:<path>` | Page views, on an allow-list of known paths |
 | `ref:<host>` | External referrer, **host only** |
+| `bot:<name>` | Automated hits, by name. `datacenter` and `impossible-agent` are the two filters below |
 
 > **The bot split on `checks` is load-bearing and was wrong for the first three days.**
 > The landing-page form is a `GET`, so any crawler that submits forms produces a valid
@@ -280,6 +281,33 @@ Crawlers are counted separately as `bot:<name>` rather than discarded — Google
 arriving is the first sign indexing has started, and a Slack or Twitter fetch means
 someone shared a link. Mixed into `view:` they would drown out the handful of real
 readers a new site gets.
+
+> **User-agent matching has a ceiling, and it is low.** It only catches automation that
+> admits to being automation. In the first week, 167 of 195 sessions were a single page
+> with zero elapsed time, one crawler produced 14 "visitors" in two seconds by rotating
+> IP and user-agent across the sitemap, and around forty hits a day claimed *our own
+> host* as the referrer on their first and only pageview. All of it presented ordinary
+> Chrome and Safari strings and none of it was catchable by a string match.
+>
+> Two further filters run, and both are named separately in the readout so they can be
+> audited rather than believed:
+>
+> - **Origin AS** (`src/lib/origin-asn.ts`, `hosting-asns.ts`). A Team Cymru DNS lookup,
+>   cached per /24 for a week, resolved inside the fire-and-forget metrics write so no
+>   page waits on it. A visitor from AWS or Hetzner is a rented machine. **Consumer VPNs
+>   and transit carriers are deliberately excluded** — a reader using Mullvad is a reader.
+>   An unresolvable AS counts as human: unknown is unknown, the same rule the checker
+>   itself follows for a refused blocklist query.
+> - **Impossible user-agents.** Internet Explorer, Chrome on Vista, current Chrome on
+>   Windows 7. Version-independent patterns only, so nobody's genuinely old machine gets
+>   libelled by a version cutoff that needs maintaining forever.
+>
+> The JSON API is exempt from both. A script calling it from a datacenter *is* a real
+> user, and this is the second time that exemption has had to be stated explicitly.
+>
+> These are heuristics about networks, not evidence about people, and the ASN list will
+> always be incomplete. They exist so a headline number is not wrong by an order of
+> magnitude, which is the only thing these counters are for.
 
 > **The container healthcheck must not hit a tracked page.** It originally probed `/`
 > every 30 seconds, which put **1,116 fake views on the landing page in nine hours** and
