@@ -17,8 +17,52 @@
 
 const TIMEOUT_MS = 2000;
 
+/**
+ * The only query parameters ever forwarded, in the only order they are ever emitted.
+ *
+ * Umami parses these out of the URL into dedicated columns and its campaign reporting is
+ * built on them, so without a passthrough a tagged link is indistinguishable from direct
+ * traffic on the dashboard. The Redis counters see `utm_source` already, but one bucket
+ * per source is not a campaign breakdown.
+ *
+ * An allow-list rather than a filter, because the alternative fails open: `/check`
+ * carries the domain someone looked up in its query string, and a "strip the sensitive
+ * ones" approach is one forgotten parameter away from publishing exactly the thing the
+ * site promises it never records. Fixed order so two identical visits produce an
+ * identical `url_query` and group together.
+ */
+const FORWARDED_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as const;
+
+/** Comfortably inside Umami's 255-char columns, and longer than any real campaign tag. */
+const MAX_VALUE_LENGTH = 64;
+
+/**
+ * Campaign tags are labels someone typed into a link, so spaces, dots and slashes are all
+ * ordinary. Anything outside this set means the value is not a campaign tag, and a
+ * malformed one is dropped whole rather than scrubbed into something that looks real.
+ */
+const VALUE_PATTERN = /^[A-Za-z0-9 ._~+/-]+$/;
+
+/**
+ * Builds the query string to report, or `''`. Exported for tests: the allow-list is the
+ * only thing standing between the analytics database and a checked domain.
+ */
+export function campaignQuery(params: URLSearchParams): string {
+  const out = new URLSearchParams();
+
+  for (const key of FORWARDED_PARAMS) {
+    const raw = params.get(key)?.trim();
+    if (!raw || raw.length > MAX_VALUE_LENGTH || !VALUE_PATTERN.test(raw)) continue;
+    out.set(key, raw);
+  }
+
+  const query = out.toString();
+  return query === '' ? '' : `?${query}`;
+}
+
 export interface UmamiEvent {
-  /** Path only — never the query string, which can carry personal data. */
+  /** Path, plus at most the campaign tags from `campaignQuery`. Never the raw query
+   *  string — it can carry a checked domain or an address. */
   url: string;
   referrer: string | null;
   userAgent: string | null;

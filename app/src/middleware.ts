@@ -2,7 +2,7 @@ import { defineMiddleware } from 'astro:middleware';
 import { clientIp } from './lib/ratelimit.js';
 import { siteOrigin } from './lib/site.js';
 import { botName, track, trafficContext } from './lib/stats.js';
-import { sendUmami } from './lib/umami.js';
+import { campaignQuery, sendUmami } from './lib/umami.js';
 
 /** Requests that are not page views: assets, machine endpoints, and the check routes
  *  (which record themselves from the handler, where success is actually known). */
@@ -52,8 +52,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
       // the same test the counters do, or the two stop agreeing.
       if (!botName(userAgent) && !traffic.fromDatacenter) {
         sendUmami({
-          // Path only — the query string can carry a checked domain or an email address.
-          url: context.url.pathname,
+          // Path, plus campaign tags and nothing else — `campaignQuery` allow-lists the
+          // five utm_* parameters, so the raw query string never reaches the dashboard.
+          url: `${context.url.pathname}${campaignQuery(context.url.searchParams)}`,
           referrer,
           userAgent,
           clientIp: ip,

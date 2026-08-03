@@ -80,7 +80,7 @@ npm run dev            # http://localhost:4321
 ```
 
 ```sh
-npm test               # 172 offline tests, no network
+npm test               # 178 offline tests, no network
 npm run test:live      # 12 live-DNS tests against real domains
 npm run check          # astro check / typecheck — must stay at 0 errors
 npm run build && npm run preview
@@ -308,6 +308,18 @@ readers a new site gets.
 > These are heuristics about networks, not evidence about people, and the ASN list will
 > always be incomplete. They exist so a headline number is not wrong by an order of
 > magnitude, which is the only thing these counters are for.
+
+A self-hosted [Umami](https://umami.is) instance receives the same page views for a richer
+breakdown, posted **server-side** from the middleware — the page loads no analytics script,
+so there is nothing for Umami's own bot filtering to run on and the gate above is the only
+one there is.
+
+> **What reaches it is an allow-list, not a filter.** `campaignQuery()` in
+> `src/lib/umami.ts` forwards exactly `utm_source`, `utm_medium`, `utm_campaign`,
+> `utm_term` and `utm_content`, and nothing else, ever. `/check` carries the looked-up
+> domain in its query string; a "strip the sensitive parameters" approach is one
+> forgotten parameter away from publishing the one thing the site promises it never
+> records. A deny-list can forget. An allow-list cannot.
 
 > **The container healthcheck must not hit a tracked page.** It originally probed `/`
 > every 30 seconds, which put **1,116 fake views on the landing page in nine hours** and
