@@ -40,6 +40,12 @@ if (!limit.allowed) {
       referrer: Astro.request.headers.get('referer'),
       userAgent: Astro.request.headers.get('user-agent'),
       clientIp: clientIp(Astro.request, Astro.clientAddress),
+      // A campaign link posted in a forum reply is far more likely to point straight at
+      // a result than at the landing page. Only the middleware passed this, and the
+      // middleware never sees /check — so those arrivals counted as a check with no
+      // source at all. Umami cannot cover the gap either: /check is deliberately never
+      // reported to it, because its query string carries the domain.
+      utmSource: params.get('utm_source'),
       selfHost: new URL(siteOrigin()).hostname,
       isCheck: true,
     });

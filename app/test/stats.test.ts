@@ -50,6 +50,16 @@ describe('check counting: bot vs human', () => {
     expect(f).not.toContain('checks');
   });
 
+  it('attributes a campaign link that points straight at a result', () => {
+    // /check never reaches the middleware, so this is the only place the source can be
+    // recorded — and Umami is never told about /check at all, because the query string
+    // carries the domain. A tagged deep link used to count as a check with no source.
+    const f = trackFields({ ...base, userAgent: HUMAN, isCheck: true, utmSource: 'reddit' });
+    expect(f).toContain('checks');
+    expect(f).toContain('src:reddit');
+    expect(f).not.toContain('src:direct');
+  });
+
   it('separates page views the same way', () => {
     expect(trackFields({ ...base, path: '/', userAgent: CRAWLER })).toContain('bot:googlebot');
     expect(trackFields({ ...base, path: '/', userAgent: HUMAN })).toContain('view:/');
