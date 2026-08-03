@@ -1,6 +1,21 @@
 ---
+import { getCollection } from 'astro:content';
 import DomainForm from '../components/DomainForm.astro';
 import Base from '../layouts/Base.astro';
+
+/**
+ * Read from the collection rather than a hand-written list. The list was hardcoded and
+ * silently went stale the moment two guides were added — they were live, in the sitemap
+ * and on /guides, but invisible from the page that gets the most traffic.
+ *
+ * Only the first few are shown, so the landing page does not turn into a directory as
+ * the collection grows. `order` is the editorial ranking, so the cut is deliberate
+ * rather than alphabetical, and everything below it is one click away.
+ */
+const FEATURED = 6;
+
+const guides = (await getCollection('guides')).sort((a, b) => a.data.order - b.data.order);
+const featured = guides.slice(0, FEATURED);
 ---
 
 <Base
@@ -67,13 +82,15 @@ import Base from '../layouts/Base.astro';
       DNS, these start from the problem and end with the record:
     </p>
     <ul class="links">
-      <li><a href="/guides/spf-too-many-dns-lookups/">SPF: too many DNS lookups</a></li>
-      <li><a href="/guides/dmarc-p-none/">What DMARC p=none actually does</a></li>
-      <li><a href="/guides/dmarc-fails-when-spf-passes/">Why DMARC fails when SPF and DKIM pass</a></li>
-      <li><a href="/guides/dmarc-reports-not-arriving/">Your DMARC reports may be going nowhere</a></li>
-      <li><a href="/guides/google-yahoo-sender-requirements/">Google and Yahoo's sender requirements</a></li>
-      <li><a href="/guides/dkim-selectors/">Finding your DKIM selector</a></li>
+      {featured.map((guide) => (
+        <li><a href={`/guides/${guide.id}/`}>{guide.data.title}</a></li>
+      ))}
     </ul>
+    {guides.length > FEATURED && (
+      <p class="more">
+        <a href="/guides">All {guides.length} guides</a>
+      </p>
+    )}
 
     <h2>Try one of these</h2>
     {/* nofollow: these are the only internal links into /check, and each crawl of a
@@ -114,4 +131,6 @@ import Base from '../layouts/Base.astro';
 
   .links { padding-left: 18px; }
   .links li { margin-bottom: 7px; }
+
+  .more { margin: 12px 0 0; padding-left: 18px; font-size: 15px; }
 </style>
