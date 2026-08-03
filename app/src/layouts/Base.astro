@@ -178,10 +178,13 @@ const imageUrl = absoluteUrl(image);
     <footer class="site">
       <div class="wrap">
         <p>
+          {/* "anonymous daily totals" used to be the whole claim here, and it was not
+              true — self-hosted analytics also record a per-visit row. Overstating it on
+              every page of a site about not being lied to was the wrong trade. */}
           Checks are read-only DNS lookups against public records. No mail is sent, and
           the domains you check are never recorded. No cookies, no third-party scripts,
-          no advertising — we keep only anonymous daily totals of how often the site is
-          used.
+          no advertising — analytics are self-hosted and
+          <a href="/about#what-it-records">described in full</a>.
         </p>
         <p>
           Results are informational. Verify any record against your provider's

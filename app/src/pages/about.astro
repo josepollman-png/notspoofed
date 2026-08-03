@@ -81,26 +81,70 @@ const contact = 'hello@notspoofed.com';
     </dd>
   </dl>
 
-  <h2>What it records about you</h2>
+  {/* id is explicit — .astro pages generate no heading anchors, and the footer on every
+      page links straight here. */}
+  <h2 id="what-it-records">What it records about you</h2>
   <p>
     No cookies, no third-party scripts, no advertising, no accounts. The pages load no
     JavaScript at all except the header analyzer, which needs it to parse in your browser.
   </p>
   <p>
     <strong>The domains, headers and addresses you check are never stored.</strong> Header
-    analysis never leaves your browser at all. The only thing kept is a daily count of how
-    often each page was viewed and how many checks ran — no IP addresses, no sessions,
-    nothing that identifies a person or a domain.
+    analysis never leaves your browser at all, and the domain you type into the checker is
+    used to make DNS queries and then discarded — it is not written to any log, counter or
+    database, and it is not sent to the analytics described below.
+  </p>
+
+  <p>Two things do get written down, and both live on this same server.</p>
+
+  <p>
+    <strong>Daily counters.</strong> How many times each page was viewed and how many
+    checks ran, as running totals per day. No addresses, no identifiers, nothing per
+    visitor. Kept for 90 days.
+  </p>
+
+  <p>
+    <strong>A self-hosted <a href="https://umami.is">Umami</a> instance</strong> for a more
+    detailed breakdown than a counter can give. It runs on this server, not a third party's
+    — no data goes to Google, Cloudflare or anyone else — and because this site loads no
+    analytics script, the page view is reported by the server rather than by your browser.
+    That is why there is no cookie and nothing to consent to. For each page view it records:
+  </p>
+  <ul>
+    <li>the page, and campaign tags (<code>utm_source</code> and similar) if the link you
+      followed had them</li>
+    <li>the site you arrived from, and its path — never its query string</li>
+    <li>your browser, operating system and device type</li>
+    <li>your approximate location, derived from your IP: country, and usually region and
+      city</li>
+    <li>a visit identifier, which is a hash of your IP address and browser string</li>
+  </ul>
+  <p>
+    <strong>Your IP address itself is not stored.</strong> It is used to work out the
+    country and to compute that hash, and then dropped — there is no column for it. But the
+    hash is stable rather than rotating, so two visits from the same network and browser
+    are recognisable as the same visitor over time. That is a pseudonym, not anonymity, and
+    it would be dishonest to describe it as the latter.
+  </p>
+
+  <p>
+    You do not have to take any of this on trust. The whole site is
+    <a href="https://github.com/josepollman-png/notspoofed">open source under the MIT
+    licence</a>. The counters are in
+    <a href="https://github.com/josepollman-png/notspoofed/blob/main/app/src/lib/stats.ts">
+    <code>stats.ts</code></a> and everything sent to Umami is in
+    <a href="https://github.com/josepollman-png/notspoofed/blob/main/app/src/lib/umami.ts">
+    <code>umami.ts</code></a> — two files, both short. What no public repository can prove
+    is that the running server matches the published code. It does mean the claim is
+    specific enough to be checked, and wrong enough to be called out if it were false.
   </p>
   <p>
-    You do not have to take that on trust. The whole site is
-    <a href="https://github.com/josepollman-png/notspoofed">open source under the MIT
-    licence</a>, and the only code that writes anything down is
-    <a href="https://github.com/josepollman-png/notspoofed/blob/main/app/src/lib/stats.ts">
-    <code>stats.ts</code></a> — one file, and the counters it keeps are listed in the
-    README. What it cannot prove is that the running server matches the published code;
-    no public repository can. It does mean the claim is specific enough to be checked,
-    and wrong enough to be called out if it were false.
+    That is not a hypothetical. Referrer URLs were being forwarded to Umami complete with
+    their query strings, so a visitor who moved from a result page to a guide handed over
+    the domain they had just checked — contradicting the promise at the top of this section.
+    It was found on 3 August 2026, fixed the same day, and the affected rows were deleted.
+    It is written up here rather than quietly corrected because a privacy page that only
+    ever reports good news is not worth reading.
   </p>
 
   {/* id is explicit — unlike Markdown, .astro pages generate no heading anchors,
