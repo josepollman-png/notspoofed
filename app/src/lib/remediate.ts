@@ -356,7 +356,12 @@ function dkimFindings(input: CheckInput): Finding[] {
 // DMARC
 // ---------------------------------------------------------------------------
 
-function dmarcFindings({ domain, dmarc, mx }: CheckInput): Finding[] {
+/**
+ * Narrowed to the three fields it actually reads, rather than all of CheckInput, so the
+ * record-generating half can be tested without standing up an SPF evaluation and a DKIM
+ * sweep to get at it. `runCheck` still passes the whole input unchanged.
+ */
+export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' | 'dmarc' | 'mx'>): Finding[] {
   const out: Finding[] = [];
 
   if (!dmarc.found || !dmarc.record) {
@@ -442,21 +447,52 @@ function dmarcFindings({ domain, dmarc, mx }: CheckInput): Finding[] {
     });
   }
 
+  // Reported after the policy finding above and deliberately not folded into it: t=y
+  // does not change which policy is published, it changes whether receivers act on it.
+  // Calling a t=y record "the strongest policy" and stopping there would be the tool
+  // telling someone they are protected when they have asked not to be.
+  if (r.testMode && r.effectivePolicy !== 'none') {
+    out.push({
+      id: 'dmarc-test-mode',
+      severity: 'warning',
+      title: `t=y — ${r.effectivePolicy} is published but not being applied`,
+      detail:
+        `Your record asks for ${r.effectivePolicy}, but t=y tells receivers you are ` +
+        'testing, so they apply handling one level below it. Forged mail that reads as ' +
+        `${r.effectivePolicy === 'reject' ? 'rejected is quarantined' : 'quarantined is delivered'} ` +
+        'instead. That is the right setting for a dry run and the wrong one to leave behind.',
+      fix: {
+        kind: 'record',
+        host: `_dmarc.${domain}`,
+        type: 'TXT',
+        value: r.raw.replace(/\bt\s*=\s*y\b/i, 't=n'),
+        caveat:
+          'Publish this once a dry run has produced no surprises. Removing t= entirely ' +
+          'has the same effect — t=n is the default.',
+      },
+    });
+  }
+
   if (r.pct < 100) {
     out.push({
       id: 'dmarc-pct',
       severity: 'warning',
       title: `Policy applies to only ${r.pct}% of mail`,
       detail:
-        `pct=${r.pct} means receivers apply your policy to ${r.pct}% of failing ` +
-        'messages and treat the rest more leniently. Useful during a rollout, but it ' +
-        'leaves a gap if left in place.',
+        `pct=${r.pct} asks receivers to apply your policy to ${r.pct}% of failing ` +
+        'messages and treat the rest more leniently. RFC 9989 removed the tag, because ' +
+        'implementations never agreed on what a value between 0 and 100 meant — so the ' +
+        'real coverage was always less predictable than the number suggests, and on a ' +
+        'receiver that has moved to 9989 there is now no gap because there is no tag. ' +
+        'Either way it should not be what stands between a forgery and your customers.',
       fix: {
         kind: 'record',
         host: `_dmarc.${domain}`,
         type: 'TXT',
         value: r.raw.replace(/;?\s*pct\s*=\s*\d+/i, ''),
-        caveat: 'Removing pct= defaults it to 100. Do this once the rollout is complete.',
+        caveat:
+          'Removing pct= applies your policy to all failing mail. Do this once the ' +
+          'rollout is complete. For a staged rollout, t=y is the replacement.',
       },
     });
   }
@@ -558,6 +594,41 @@ function dmarcFindings({ domain, dmarc, mx }: CheckInput): Finding[] {
     }
   }
 
+  // np= covers the subdomains an attacker invents — the ones that were never real —
+  // so it is only worth raising once the parent domain is actually enforcing. Offering
+  // np=reject to a domain still on p=none would be advice about the wrong problem.
+  if (r.nonExistentPolicy === null && r.policy && r.policy !== 'none') {
+    out.push({
+      id: 'dmarc-no-np',
+      severity: 'info',
+      title: 'No np= tag for subdomains that do not exist',
+      detail:
+        `RFC 9989 added np= for subdomains with no DNS records at all. That is the ` +
+        `sharper tool against forgery, because names like billing.${domain} are usually ` +
+        'invented rather than real — sp= covers subdomains generally, np= lets you ' +
+        'refuse the unregistered ones outright while leaving your genuine subdomains ' +
+        `under ${r.subdomainPolicy ? `sp=${r.subdomainPolicy}` : 'p='}. ` +
+        'Receivers that have not adopted 9989 ignore it, so publishing it costs nothing.',
+      fix: {
+        kind: 'record',
+        // foundAt, not domain, unlike the findings above: np= governs non-existent
+        // subdomains *of the domain publishing it*, so on an inherited record it
+        // belongs on the parent. Publishing it at the subdomain the user happened to
+        // type would apply it one level too low and do nothing they asked for.
+        host: `_dmarc.${r.foundAt}`,
+        type: 'TXT',
+        // Appended rather than spliced in after p=. Tag order carries no meaning past
+        // v=, and splicing re-emitted a sp= that was already in the record — a repeated
+        // tag, which this same parser correctly calls an error.
+        value: `${r.raw.replace(/;\s*$/, '')}; np=reject`,
+        caveat:
+          'Safe for almost every domain, because it only applies to names that resolve ' +
+          'to nothing. Check first that no sender uses a subdomain that exists only as ' +
+          'a bare MX or TXT name.',
+      },
+    });
+  }
+
   for (const err of r.errors) {
     out.push({
       id: 'dmarc-syntax',
@@ -573,8 +644,27 @@ function dmarcFindings({ domain, dmarc, mx }: CheckInput): Finding[] {
       severity: 'info',
       title: 'Unrecognised DMARC tags',
       detail:
-        `${r.unknownTags.join(', ')} are not defined in RFC 7489 and will be ignored. ` +
+        `${r.unknownTags.join(', ')} are not defined in RFC 9989 and will be ignored. ` +
         'Usually a typo — check them against the tag you intended.',
+    });
+  }
+
+  // Separate from the finding above on purpose. A deprecated tag is valid, published
+  // on purpose, and still honoured by most receivers; telling someone to go looking
+  // for a spelling mistake in it would send them after a bug that is not there.
+  const stale = r.deprecatedTags.filter((t) => t !== 'pct' || r.pct === 100);
+  if (stale.length > 0) {
+    out.push({
+      id: 'dmarc-deprecated-tags',
+      severity: 'info',
+      title: `${stale.join(', ')} ${stale.length === 1 ? 'is' : 'are'} deprecated`,
+      detail:
+        `RFC 9989 removed ${stale.join(', ')}. Nothing breaks — receivers that still ` +
+        'implement RFC 7489 continue to honour these, and the rest ignore them — but ' +
+        'they no longer do anything you can rely on. ' +
+        (stale.includes('pct') ? 't=y is the replacement for staged rollouts. ' : '') +
+        (stale.includes('ri') ? 'Aggregate reports are daily in practice regardless. ' : '') +
+        'Removing them is tidying, not a fix.',
     });
   }
 

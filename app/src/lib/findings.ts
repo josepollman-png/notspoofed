@@ -55,6 +55,7 @@ export const FINDING_IDS = [
   'dmarc-missing', 'dmarc-inherited', 'dmarc-p-none', 'dmarc-quarantine',
   'dmarc-reject', 'dmarc-pct', 'dmarc-no-rua', 'dmarc-rua-undeliverable',
   'dmarc-external-unauthorised', 'dmarc-sp-weaker', 'dmarc-syntax', 'dmarc-unknown-tags',
+  'dmarc-test-mode', 'dmarc-no-np', 'dmarc-deprecated-tags',
   // MTA-STS / TLS-RPT / BIMI / DNSSEC
   'mtasts-policy-unreachable', 'mtasts-mx-mismatch', 'mtasts-testing', 'mtasts-syntax',
   'mtasts-ok', 'mtasts-missing', 'tlsrpt-syntax', 'tlsrpt-missing',

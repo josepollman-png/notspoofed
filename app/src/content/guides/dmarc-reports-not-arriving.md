@@ -3,13 +3,13 @@ title: "Your DMARC reports may be going nowhere"
 description: "A DMARC record can look flawless and still deliver you no reports at all. Two failure modes that leave you blind, and how to check for both."
 question: "Why am I not receiving DMARC reports?"
 published: 2026-07-31
-updated: 2026-07-31
+updated: 2026-08-05
 order: 30
 faq:
   - q: "Why am I not getting DMARC aggregate reports?"
     a: "The two usual causes are an external reporting address that has not authorised your domain, and a reporting address on a domain with no MX record. Both leave the DMARC record looking perfectly valid."
   - q: "What is a DMARC external destination verification record?"
-    a: "If your rua address is on a different organisational domain, RFC 7489 requires that domain to publish a TXT record at yourdomain.com._report._dmarc.theirdomain.com containing v=DMARC1. Without it, conforming reporters send nothing."
+    a: "If your rua address is on a different organisational domain, RFC 9990 (which replaced RFC 7489 in May 2026) requires that domain to publish a TXT record at yourdomain.com._report._dmarc.theirdomain.com containing v=DMARC1. Without it, conforming reporters send nothing."
   - q: "Can I send DMARC reports to a Gmail address?"
     a: "Not directly. Google would have to publish an authorisation record in their own DNS for your domain, which they will not do. Use an address on your own domain and forward it, or use a reporting service that publishes the required records."
 ---
@@ -26,7 +26,7 @@ This is the one almost nobody knows about, and it is in the spec.
 
 If your `rua=` address is on a **different organisational domain** from the domain
 publishing the DMARC record,
-[RFC 7489 §7.1](https://www.rfc-editor.org/rfc/rfc7489#section-7.1) requires the
+[RFC 9990 §5.4](https://www.rfc-editor.org/rfc/rfc9990#section-5.4) requires the
 destination to explicitly consent. Otherwise anyone could point their `rua=` at your
 mailbox and use the world's mail infrastructure to flood it.
 

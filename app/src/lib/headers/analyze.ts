@@ -38,7 +38,7 @@ export interface HeaderAnalysis {
   findings: Finding[];
 }
 
-/** RFC 7489 §3.1 — strict requires an exact match, relaxed only the org domain. */
+/** RFC 9989 §3.2.10 — strict requires an exact match, relaxed only the org domain. */
 export function alignmentOf(authDomain?: string, fromDomain?: string): Alignment {
   if (!authDomain || !fromDomain) return 'none';
   const a = authDomain.toLowerCase().replace(/\.$/, '');

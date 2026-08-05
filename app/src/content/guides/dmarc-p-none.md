@@ -3,7 +3,7 @@ title: "What DMARC p=none actually does"
 description: "p=none collects reports and blocks nothing. It is the right place to start and the wrong place to stop. How to get to enforcement without losing mail."
 question: "Does DMARC p=none protect my domain?"
 published: 2026-07-31
-updated: 2026-07-31
+updated: 2026-08-05
 order: 20
 faq:
   - q: "Does p=none stop email spoofing?"
@@ -105,10 +105,16 @@ Setting `sp=none` while `p=reject` is a common and bad combination — attackers
 subdomains precisely because they are usually the weaker target, and
 `billing.example.com` is just as convincing to a recipient as the real thing.
 
-**`pct=`** applies your policy to a percentage of failing mail. It exists for gradual
-rollouts, and it is genuinely useful at `pct=25` for a week or two on the way to
-enforcement. It is also frequently left behind by accident. `pct=50` at `p=reject`
-means half of the forgeries targeting your customers are delivered.
+**`t=`** signals testing mode. At `t=y`, receivers apply failure handling one level below
+your stated policy — a dry run before you commit. A week or two at `p=reject; t=y` is a
+sensible last step before enforcement.
+
+It replaces `pct=`, which [RFC 9989](https://www.rfc-editor.org/rfc/rfc9989) deprecated in
+May 2026. `pct=` was meant to apply your policy to a percentage of failing mail, but
+implementations disagreed on what intermediate values meant, so a "25% rollout" was never
+as controlled as it looked. Existing `pct=` tags still parse — but if you have one sitting
+at `pct=50` under `p=reject`, half the forgeries targeting your customers are being
+delivered, and it should come out.
 
 ## The honest summary
 

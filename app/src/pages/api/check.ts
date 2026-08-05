@@ -125,7 +125,12 @@ export const GET: APIRoute = async ({ request, url, clientAddress }) => {
         inherited: r.dmarc.record?.inherited ?? false,
         policy: r.dmarc.record?.policy ?? null,
         subdomainPolicy: r.dmarc.record?.subdomainPolicy ?? null,
+        nonExistentPolicy: r.dmarc.record?.nonExistentPolicy ?? null,
         effectivePolicy: r.dmarc.record?.effectivePolicy ?? null,
+        // Which of p=/sp=/np= produced effectivePolicy. Additive, so no version bump:
+        // a consumer that does not read it sees exactly what it saw before.
+        appliedTag: r.dmarc.record?.appliedTag ?? null,
+        testMode: r.dmarc.record?.testMode ?? false,
         pct: r.dmarc.record?.pct ?? null,
         rua: r.dmarc.record?.rua.map((u) => u.address) ?? [],
         externalDestinations: r.dmarc.externalDestinations.map((d) => ({

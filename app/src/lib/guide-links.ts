@@ -50,7 +50,13 @@ export const FINDING_GUIDES: Partial<Record<FindingId, GuideLink>> = {
   // DMARC
   'dmarc-missing': G.spoofing,
   'dmarc-sp-weaker': G.spoofing,
+  // np= is the subdomain-forgery tag, and the spoofing guide is where that attack is
+  // explained; the rollout tags belong with the guide about getting to enforcement.
+  'dmarc-no-np': G.spoofing,
   'dmarc-p-none': G.pNone,
+  'dmarc-pct': G.pNone,
+  'dmarc-test-mode': G.pNone,
+  'dmarc-deprecated-tags': G.pNone,
   'dmarc-no-rua': G.reports,
   'dmarc-rua-undeliverable': G.reports,
   'dmarc-external-unauthorised': G.reports,

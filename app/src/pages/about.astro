@@ -174,9 +174,12 @@ const contact = 'hello@notspoofed.com';
     says so plainly rather than steering you somewhere.
   </p>
   <p>
-    The checks are built directly against the RFCs (7208 for SPF, 6376 for DKIM, 7489 for
-    DMARC, 8461 for MTA-STS) and tested against a corpus of real domains whose
-    configuration is verified independently.
+    The checks are built directly against the RFCs (7208 for SPF, 6376 for DKIM, 9989 and
+    9990 for DMARC, 8461 for MTA-STS) and tested against a corpus of real domains whose
+    configuration is verified independently. DMARC moved to 9989 in May 2026, which
+    deprecated <code>pct=</code>, added <code>np=</code> and <code>t=</code>, and replaced
+    the Public Suffix List with a DNS tree walk — the checks follow it rather than the
+    superseded RFC 7489.
   </p>
 
   <h2>Contact</h2>

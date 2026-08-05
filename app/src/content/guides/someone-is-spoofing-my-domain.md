@@ -3,7 +3,7 @@ title: "Someone is sending email as my domain"
 description: "Four different problems get called spoofing, and DMARC only fixes one of them. How to tell which one is happening to you before you change any DNS."
 question: "How do I stop someone sending email from my domain?"
 published: 2026-08-03
-updated: 2026-08-03
+updated: 2026-08-05
 order: 5
 faq:
   - q: "How do I stop someone sending email from my domain?"
@@ -99,6 +99,18 @@ Attackers move to subdomains when the parent domain becomes unusable, because
 Subdomains inherit `p=` unless you override it, so a bare `p=reject` already covers them.
 The mistake is publishing `sp=none` alongside it — usually copied from an example
 somewhere — which reopens exactly the door you just closed.
+
+[RFC 9989](https://www.rfc-editor.org/rfc/rfc9989) adds `np=` for subdomains that do not
+exist at all. This is the sharper tool for this attack, because the subdomains attackers
+invent are almost never real ones. `np=reject` refuses mail from anything unregistered
+while leaving your genuine subdomains under `sp=`.
+
+```
+_dmarc.example.com.  TXT  "v=DMARC1; p=reject; sp=reject; np=reject; rua=mailto:dmarc@example.com"
+```
+
+Receivers that have not adopted RFC 9989 yet ignore `np=` and fall back to `sp=`, so
+there is no downside to publishing it now.
 
 ## What DMARC will not do for you
 
