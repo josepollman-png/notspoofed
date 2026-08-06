@@ -3,7 +3,7 @@ title: "Someone is sending email as my domain"
 description: "Four different problems get called spoofing, and DMARC only fixes one of them. How to tell which one is happening to you before you change any DNS."
 question: "How do I stop someone sending email from my domain?"
 published: 2026-08-03
-updated: 2026-08-05
+updated: 2026-08-06
 order: 5
 faq:
   - q: "How do I stop someone sending email from my domain?"
@@ -12,6 +12,8 @@ faq:
     a: "Usually not. Those are backscatter — a spammer forged your address as the sender, and the bounces came back to you. It is evidence your domain is being forged, not that anything of yours was accessed."
   - q: "Does DMARC stop someone impersonating me from a Gmail address?"
     a: "No. If the attacker sends from their own address and only sets the display name to your name, the message is authenticated correctly for their domain. DMARC has nothing to act on, because your domain is not in the From header."
+  - q: "Why does my own forwarded email fail DMARC?"
+    a: "Forwarding breaks SPF, because the message reaches the recipient from the forwarder's server rather than yours. DKIM normally survives a plain forward, so DMARC still passes on DKIM alone. But a mailing list that rewrites the subject or appends a footer breaks the DKIM body hash too, and then DMARC fails on a message that is genuinely yours. In an aggregate report that is indistinguishable from a forgery."
 ---
 
 Before changing any DNS, work out which problem you actually have. Four quite different
@@ -37,6 +39,66 @@ first, and the one DMARC was designed for.
 If you are unsure which you are looking at, paste the message's raw headers into the
 [header analyzer](/headers). It runs entirely in your browser and will tell you which
 domain actually authenticated.
+
+## A fifth thing, and it isn't an attack
+
+The four rows above all answer "what is the attacker doing". There is a fifth case that
+looks exactly like the first one in a DMARC report and is not an attack at all: your own
+mail, forwarded.
+
+It matters because this is the case where enforcing hurts you rather than the forger.
+
+Whether it breaks depends on one thing — whether anything modified the message on the
+way.
+
+| What happened | SPF | DKIM | DMARC result |
+|---|---|---|---|
+| Plain forward, message untouched | Breaks — the return path is the forwarder now | Survives | Passes on DKIM alone |
+| A list rewrites the `Subject` or appends a footer | Breaks | Breaks — the `bh=` body hash no longer matches | Fails |
+
+The first case is survivable and you would never notice it without reading reports. The
+second is the problem: a genuinely-yours message with both mechanisms failing,
+quarantined at the final hop, arriving in your `rua` as a failing source.
+
+In the aggregate report those two are indistinguishable from a forgery. Same shape —
+your domain in the `From:`, both mechanisms failing, an IP you do not recognise. Nothing
+in the report tells you which is which. The only thing that separates them is whether you
+recognise the source, and that is the real reason to read reports for four to six weeks
+rather than one: a monthly newsletter that goes out through a mailing list will not
+appear in a fortnight of data, and it is exactly the traffic you will break.
+
+### ARC, and what it does not promise
+
+ARC exists for precisely this. A forwarder that implements it records the authentication
+results it saw before it touched the message, so a receiver further down the chain can
+honour the original verdict despite the break.
+
+The caveat is that it only helps when the final receiver evaluates the chain. Google and
+Microsoft do. Many receivers do not, and even those that do are under no obligation to
+trust a given chain. ARC improves your odds; it does not remove the need to recognise
+your own forwarders before you enforce.
+
+### The list-side fix
+
+If the traffic is a mailing list you control, the pragmatic mitigation is From-rewriting
+— Mailman and equivalents replace the `From:` with the list's own address, so DMARC
+evaluates the list's domain instead of yours and the break stops mattering.
+
+It is why list mail so often shows up as "via" in Gmail. Inelegant, and it works.
+
+### What to do about it
+
+Before moving off `p=none`, go through the failing sources in your reports and sort them
+into three piles rather than two:
+
+1. **Recognised sender, failing** — fix the authentication (usually DKIM signing with
+   your domain).
+2. **Recognised forwarder** — expected. Do not try to fix it in DNS; you cannot. Note it
+   and move on.
+3. **Unrecognised** — this is the forgery, and it is what enforcement is for.
+
+Pile two is the one people skip, and skipping it is how a `p=reject` rollout quietly
+starts deleting a department's mailing list.
 
 ## "I'm getting bounces for mail I never sent"
 
@@ -83,9 +145,10 @@ including the three internal systems you had forgotten about.
 
 **3. Read the reports for four to six weeks, then enforce.**
 
-Long enough for monthly and quarterly senders to appear. Then `p=quarantine`, then
-`p=reject`. The full sequence, including what to do with what the reports show you, is
-in [what DMARC p=none actually does](/guides/dmarc-p-none/).
+Long enough for monthly and quarterly senders to appear, and to tell a forgery apart from
+[your own forwarded mail](#a-fifth-thing-and-it-isnt-an-attack). Then `p=quarantine`,
+then `p=reject`. The full sequence, including what to do with what the reports show you,
+is in [what DMARC p=none actually does](/guides/dmarc-p-none/).
 
 At `p=reject`, a forged message using your domain is refused by every major mailbox
 provider. That is the outcome you are after, and there is no shortcut to it that does
