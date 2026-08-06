@@ -35,10 +35,10 @@ There is no DNS query that returns "all names under `_domainkey`". `ANY` queries
 not do this, and zone transfers are refused by every sane nameserver. To read a DKIM
 key you must already know the selector.
 
-This means **every DKIM checker in existence is guessing.** Reputable ones try a list
-of forty or fifty common selectors. When one reports "no DKIM found", the honest
-reading is *"we tried our list and nothing matched"* — which is genuinely different
-from "you have no DKIM".
+This means **every DKIM checker in existence is guessing.** Reputable ones try a list of
+a few dozen common selectors; ours tries 50, plus any you enter yourself. When one
+reports "no DKIM found", the honest reading is *"we tried our list and nothing matched"*
+— which is genuinely different from "you have no DKIM".
 
 Amazon SES makes this concrete: its selectors are random tokens. No guess list will
 ever find them. A domain signing perfectly with SES will show as "no DKIM" on every

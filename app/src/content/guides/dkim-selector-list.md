@@ -115,6 +115,6 @@ Two results that look like success but aren't:
 
 ## Still not sure?
 
-Run your domain through [the checker](/) — it tries around a hundred selectors, verifies
-each hit is a real parseable signing key rather than a wildcard echo, and tells you
-plainly when a miss isn't proof of absence.
+Run your domain through [the checker](/) — it tries the 50 selectors in its guess list,
+plus any you enter yourself, verifies each hit is a real parseable signing key rather
+than a wildcard echo, and tells you plainly when a miss isn't proof of absence.
