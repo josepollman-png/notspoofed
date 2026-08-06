@@ -31,6 +31,7 @@ const G = {
   reports: { slug: 'dmarc-reports-not-arriving', title: 'Your DMARC reports may be going nowhere' },
   bulk: { slug: 'google-yahoo-sender-requirements', title: "Google and Yahoo's sender requirements" },
   selectors: { slug: 'dkim-selectors', title: 'Finding your DKIM selector' },
+  selectorList: { slug: 'dkim-selector-list', title: 'DKIM selectors by provider' },
 } as const satisfies Record<string, GuideLink>;
 
 export const FINDING_GUIDES: Partial<Record<FindingId, GuideLink>> = {
@@ -44,7 +45,15 @@ export const FINDING_GUIDES: Partial<Record<FindingId, GuideLink>> = {
 
   // DKIM. Not dkim-weak-key — key length is a different subject and the guide would
   // not answer the question the finding raises.
-  'dkim-none-found': G.selectors,
+  //
+  // "No DKIM found" goes to the provider table rather than the explainer. Someone
+  // reading that finding has two questions — is this a real absence, and what should I
+  // try instead — and the table answers both: its "unguessable by design" section is
+  // precisely why the finding is so often wrong on SES and SparkPost domains. Only one
+  // link renders per finding, but the table's first sentence links to the explainer, so
+  // the reader can still get there. The wildcard trap stays with the explainer, which
+  // is where it is worked through in depth.
+  'dkim-none-found': G.selectorList,
   'dkim-wildcard-dns': G.selectors,
 
   // DMARC

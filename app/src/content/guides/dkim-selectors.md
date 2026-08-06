@@ -44,6 +44,11 @@ Amazon SES makes this concrete: its selectors are random tokens. No guess list w
 ever find them. A domain signing perfectly with SES will show as "no DKIM" on every
 guessing tool, forever.
 
+> **Looking for the selector your provider uses?**
+> [DKIM selectors by provider](/guides/dkim-selector-list/) lists the known selector for
+> each major platform, marked according to whether it was verified against a live domain
+> or only documented — plus the providers whose selectors cannot be guessed at all.
+
 ## Two ways to find yours for certain
 
 ### Read a message you sent
