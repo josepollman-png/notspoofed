@@ -121,7 +121,11 @@ const imageUrl = absoluteUrl(image);
         padding: 18px 0;
         margin-bottom: 40px;
       }
-      header.site .wrap { display: flex; align-items: baseline; gap: 12px; }
+      /* Wraps rather than clips. The row used to be nowrap, which meant every item
+         added to the nav had to be paid for by shrinking something else — and at five
+         items there was nothing left to shrink, so the last link went off the edge.
+         Allowing a second line makes the nav additive again. */
+      header.site .wrap { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
       header.site a.brand {
         font-weight: 650; color: var(--text); text-decoration: none; font-size: 17px;
       }
@@ -132,8 +136,9 @@ const imageUrl = absoluteUrl(image);
 
       @media (max-width: 480px) {
         header.site .tag { display: none; }
-        /* The wordmark is five characters longer than the nav was laid out for, and
-           the header row does not wrap. Without these it overflows at 360px. */
+        /* The wordmark is five characters longer than the nav was laid out for, so it
+           still shrinks here — that keeps everything on one line down to about 400px,
+           and below that the nav wraps to its own row instead of overflowing. */
         header.site a.brand { font-size: 15px; }
         header.site nav { gap: 14px; }
       }
@@ -165,6 +170,7 @@ const imageUrl = absoluteUrl(image);
         <nav>
           <a href="/headers">Headers</a>
           <a href="/ip">IP</a>
+          <a href="/tools">Tools</a>
           <a href="/guides">Guides</a>
           <a href="/api">API</a>
         </nav>
@@ -191,6 +197,7 @@ const imageUrl = absoluteUrl(image);
           documentation before publishing it — DNS changes affect live mail delivery.
         </p>
         <p class="links">
+          <a href="/tools">Tools</a> ·
           <a href="/about">About</a> ·
           <a href="/about#reporting-a-wrong-result">Report a wrong result</a> ·
           <a href="/api">API</a> ·

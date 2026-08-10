@@ -25,9 +25,17 @@ export const GET: APIRoute = () =>
       // Prefix match on the query string only: /ip?ip=… is an unbounded result space,
       // while bare /ip is a landing page we want indexed.
       'Disallow: /ip?',
+      // Saved results from the tools app. Same reasoning as /check — unbounded URL
+      // space, every entry a one-off — and they already send noindex via X-Robots-Tag
+      // for the crawlers that ignore this file.
+      'Disallow: /result/',
       'Allow: /',
       '',
       `Sitemap: ${absoluteUrl('/sitemap.xml')}`,
+      // The deliverability tools under /tools are a separate application on this
+      // hostname with its own sitemap. robots.txt is served from the origin root, so
+      // this file is the only place both can be advertised to a crawler.
+      `Sitemap: ${absoluteUrl('/tools/sitemap.xml')}`,
       '',
     ].join('\n'),
     { headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
