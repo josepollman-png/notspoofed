@@ -3,7 +3,7 @@ title: "Google and Yahoo's sender requirements"
 description: "What Google and Yahoo have required from senders since February 2024, who it applies to, and how to tell whether you comply."
 question: "What are the Google and Yahoo bulk sender requirements?"
 published: 2026-07-31
-updated: 2026-07-31
+updated: 2026-08-11
 order: 12
 faq:
   - q: "What do Google and Yahoo require from bulk senders?"
@@ -80,6 +80,14 @@ failure.
 
 ## How to tell whether you comply
 
+> **The [Gmail and Yahoo compliance checker](/tools/gmail-yahoo-compliance) runs this
+> whole list against your domain.** It checks the DNS side live, and — the part that
+> matters — marks the requirements that *cannot* be established from a domain as
+> unverified rather than showing them green. Four of the nine are like that, including
+> one-click unsubscribe and alignment.
+
+By hand, the two DNS records are a pair of one-liners:
+
 ```sh
 dig +short TXT yourdomain.com | grep spf1      # SPF present?
 dig +short TXT _dmarc.yourdomain.com           # DMARC present?
@@ -110,7 +118,10 @@ only feedback channel that tells you what receivers actually did with your mail.
 3. Publish `v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com`.
 4. Read the reports for a month. Fix whatever is failing alignment.
 5. Move to `p=quarantine`, then `p=reject`.
-6. Add one-click unsubscribe to anything resembling marketing.
+6. Add one-click unsubscribe to anything resembling marketing, then
+   [check it against a real message](/tools/unsubscribe-checker) — the headers being
+   present is only half of it, and the half that fails silently is whether your DKIM
+   signature covers them.
 
 Steps 1 to 3 can be done in an afternoon. Step 4 is the one that takes real time, and
 it is the one that cannot be skipped.
