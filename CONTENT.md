@@ -95,11 +95,18 @@ recommends `pct=`, which RFC 9989 removed — the checker already flags that as
 | Query | Angle | Status |
 |---|---|---|
 | DMARC for Google Workspace | Their doc recommends deprecated `pct=`; 48-hour wait; no `ruf` support | **published** |
-| DMARC for Microsoft 365 | Tenant vs custom domain; `onmicrosoft.com` cannot be DMARC'd usefully | queued |
-| SPF/DMARC on Cloudflare | Proxying and DNS-only; flattening features; their Email Routing rewrites | queued |
-| DMARC for Shopify | Sends via their own infrastructure; the customer-notification domain trap | queued |
+| DMARC for Microsoft 365 | Default DKIM signs `d=tenant.onmicrosoft.com`, which fails alignment even relaxed; no `rua` unless MX points at Microsoft | **published** |
+| SPF/DKIM/DMARC on Cloudflare | Not a sender — a DNS host. Orange cloud vs `a`/`mx` mechanisms; Email Routing is inbound-only; DMARC Management appends its own `rua` | **published** |
+| Email authentication for Shopify | The `store+123@shopifyemail.com` rewrite is the searched symptom; CNAMEs cover SPF; `adkim=s`/`aspf=s` breaks it | **published** |
 | Mailchimp / Klaviyo authenticated domains | Alignment when the ESP owns the return-path | queued |
 | Zoho / Fastmail | Smaller volume, high intent | backlog |
+
+Pattern that emerged across all four, worth reusing: **the page is about where the
+provider's own documentation is wrong, silent, or misleading.** Google still recommends a
+tag the RFC removed; Microsoft's checklist never mentions that default DKIM does not
+align; Cloudflare's role is misread as a sender; Shopify's rewrite looks like a bug. Each
+of those is a thing the provider's page will not tell you, which is the only durable
+reason to outrank it.
 
 ## Type 3 — Comparison pages
 
