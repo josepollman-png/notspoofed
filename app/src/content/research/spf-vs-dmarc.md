@@ -108,6 +108,6 @@ Step 5 is where protection begins. Based on our data, that's the step most compa
 
 ---
 
-**Related:** [DMARC adoption statistics 2026](/dmarc-adoption-statistics) · [What p=none actually means](/dmarc-p-none) · [The full 6,122-domain study](/research/yc-email-spoofing-study)
+**Related:** [DMARC adoption statistics 2026](/dmarc-adoption-statistics) · [What p=none actually means](/guides/dmarc-p-none/) · [The full 6,122-domain study](/research/yc-email-spoofing-study)
 
 **Check your domain free:** [notspoofed.com](https://notspoofed.com)
