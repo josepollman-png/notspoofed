@@ -2,6 +2,7 @@
 title: "What DMARC p=none actually does"
 description: "p=none collects reports and blocks nothing. It is the right place to start and the wrong place to stop. How to get to enforcement without losing mail."
 question: "Does DMARC p=none protect my domain?"
+category: "DMARC"
 published: 2026-07-31
 updated: 2026-08-05
 order: 20

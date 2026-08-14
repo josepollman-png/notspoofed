@@ -2,6 +2,7 @@
 title: "Why DMARC fails when SPF and DKIM pass"
 description: "Passing SPF is not enough — the domain that passed has to match the one your recipient sees. How to read alignment from your own message headers."
 question: "Why does DMARC fail when SPF passes?"
+category: "DMARC"
 published: 2026-07-31
 updated: 2026-07-31
 order: 25

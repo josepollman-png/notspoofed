@@ -3,43 +3,145 @@ import { getCollection } from 'astro:content';
 import DomainForm from '../../components/DomainForm.astro';
 import Base from '../../layouts/Base.astro';
 
+/**
+ * A card grid rather than a list, because the list stopped working at fifteen entries.
+ *
+ * As a flat run of hairline-separated rows there was nothing to scan by: every guide
+ * looked identical, and the four provider pages — which a reader arrives already knowing
+ * they want — were indistinguishable from the conceptual ones. The category label is the
+ * fix; the cards exist to give it somewhere to sit.
+ *
+ * Order is still the editorial ranking from frontmatter, not the category. Grouping into
+ * sections was the other option and it buries the strongest pages below a heading, which
+ * is the opposite of what the ranking is for.
+ */
 const guides = (await getCollection('guides')).sort(
   (a, b) => a.data.order - b.data.order,
 );
+
+/** The orientation link. Lowest `order` is the editorial "read this first". */
+const first = guides[0]!;
+const rest = guides.slice(1);
 ---
 
 <Base
   title="Email authentication guides — notspoofed.com"
-  description="Plain-English fixes for SPF, DKIM and DMARC problems: the 10-lookup limit, p=none, missing reports, and the Google and Yahoo sender requirements."
+  description="Plain-English fixes for SPF, DKIM and DMARC problems: the 10-lookup limit, p=none, missing reports, provider setup, and the Google and Yahoo sender requirements."
   canonicalPath="/guides"
 >
-  <h1>Guides</h1>
-  <p class="lede">
-    Each of these starts from a problem you might be having and ends with a record
-    you can publish. No prior knowledge of email authentication assumed.
+  <div class="hero">
+    <p class="eyebrow">Guides</p>
+    <h1>Every guide, in one place</h1>
+    <p class="lede">
+      Each one starts from a problem you might be having and ends with a record you
+      can publish. No prior knowledge of email authentication assumed.
+    </p>
+  </div>
+
+  <p class="start">
+    New here? Start with <a href={`/guides/${first.id}/`}>{first.data.title}</a> —
+    it tells you which problem you actually have before you change any DNS.
   </p>
 
-  <ul class="guides">
-    {guides.map((guide) => (
-      <li>
-        <a href={`/guides/${guide.id}/`}>{guide.data.title}</a>
-        <p>{guide.data.description}</p>
+  <ul class="grid">
+    {rest.map((guide) => (
+      <li class="card">
+        <p class="cat">{guide.data.category}</p>
+        {/* The whole card is the target. The anchor keeps the real href so it still
+            works without CSS and reads correctly to a screen reader; the pseudo-element
+            stretches its hit area over the card. */}
+        <h2><a href={`/guides/${guide.id}/`}>{guide.data.title}</a></h2>
+        <p class="desc">{guide.data.description}</p>
       </li>
     ))}
   </ul>
 
-  <h2>Or just check your domain</h2>
+  <h2 class="cta">Or just check your domain</h2>
   <DomainForm />
 </Base>
 
 <style>
-  .guides { list-style: none; margin: 32px 0 0; padding: 0; }
-  .guides li {
-    padding: 18px 0;
-    border-bottom: 1px solid var(--border);
+  .hero { text-align: center; margin-bottom: 30px; }
+
+  .eyebrow {
+    margin: 0 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent);
   }
-  .guides li:first-child { border-top: 1px solid var(--border); }
-  .guides a { font-size: 17px; font-weight: 600; text-decoration: none; }
-  .guides a:hover { text-decoration: underline; }
-  .guides p { margin: 6px 0 0; color: var(--muted); max-width: 68ch; }
+
+  .hero h1 { margin: 0; }
+
+  .hero .lede {
+    margin: 12px auto 0;
+    max-width: 56ch;
+    color: var(--muted);
+  }
+
+  .start {
+    margin: 0 0 26px;
+    padding: 13px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--accent-soft);
+    font-size: 15px;
+    text-align: center;
+  }
+
+  .grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    position: relative;
+    padding: 17px 18px 19px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    transition: border-color 0.12s ease, transform 0.12s ease;
+  }
+
+  .card:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+  /* Keyboard parity: the card must show the same state the mouse gets, and the ring has
+     to sit on the card rather than on the inline anchor, which is only as wide as its
+     text. */
+  .card:focus-within {
+    border-color: var(--accent);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .cat {
+    margin: 0 0 7px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .card h2 { margin: 0; font-size: 16.5px; line-height: 1.35; font-weight: 600; }
+
+  .card h2 a { text-decoration: none; color: var(--text); }
+  .card h2 a::after { content: ''; position: absolute; inset: 0; }
+  .card h2 a:focus-visible { outline: none; }
+
+  .desc { margin: 7px 0 0; font-size: 14px; color: var(--muted); }
+
+  .cta { margin-top: 44px; }
+
+  @media (max-width: 620px) {
+    .grid { grid-template-columns: 1fr; }
+    .hero { text-align: left; }
+    .hero .lede { margin-inline: 0; }
+    .start { text-align: left; }
+  }
 </style>

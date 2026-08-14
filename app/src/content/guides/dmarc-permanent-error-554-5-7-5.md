@@ -2,6 +2,7 @@
 title: "554 5.7.5 permanent error evaluating DMARC policy"
 description: "Gmail rejected your mail because it could not reach a usable DMARC result. Almost always your DNS, not the message. How to tell which of three causes it is."
 question: "What does 554 5.7.5 permanent error evaluating DMARC policy mean?"
+category: "Error messages"
 published: 2026-08-14
 updated: 2026-08-14
 order: 18

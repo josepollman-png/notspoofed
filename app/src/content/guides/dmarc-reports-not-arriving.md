@@ -2,6 +2,7 @@
 title: "Your DMARC reports may be going nowhere"
 description: "A DMARC record can look flawless and still deliver you no reports at all. Two failure modes that leave you blind, and how to check for both."
 question: "Why am I not receiving DMARC reports?"
+category: "DMARC"
 published: 2026-07-31
 updated: 2026-08-05
 order: 30

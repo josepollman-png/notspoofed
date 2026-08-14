@@ -2,6 +2,7 @@
 title: "Setting up DMARC on Microsoft 365"
 description: "M365 signs your mail with onmicrosoft.com by default, which does not align with your own domain. Why DMARC still fails with DKIM switched on, and the fix."
 question: "How do I set up DMARC for Microsoft 365?"
+category: "Providers"
 published: 2026-08-14
 updated: 2026-08-14
 order: 24

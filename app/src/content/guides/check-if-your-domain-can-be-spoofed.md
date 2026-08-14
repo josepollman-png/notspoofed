@@ -2,6 +2,7 @@
 title: "How to check if your domain can be spoofed"
 description: "Find out whether anyone can send email as your domain — in about two minutes, without sending a message. How to run the check and read all three results."
 question: "How do I check if my domain can be spoofed?"
+category: "Getting started"
 published: 2026-08-14
 updated: 2026-08-14
 order: 8

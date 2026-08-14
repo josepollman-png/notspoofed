@@ -2,6 +2,7 @@
 title: "SPF, DKIM and DMARC on Cloudflare DNS"
 description: "Cloudflare hosts your DNS, it does not send your mail. The orange cloud, the inbound-only Email Routing trap, and what DMARC Management changes in your record."
 question: "How do I set up SPF, DKIM and DMARC on Cloudflare?"
+category: "Providers"
 published: 2026-08-14
 updated: 2026-08-14
 order: 26

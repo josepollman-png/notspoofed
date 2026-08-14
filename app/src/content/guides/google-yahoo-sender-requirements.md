@@ -2,6 +2,7 @@
 title: "Google and Yahoo's sender requirements"
 description: "What Google and Yahoo have required from senders since February 2024, who it applies to, and how to tell whether you comply."
 question: "What are the Google and Yahoo bulk sender requirements?"
+category: "Bulk senders"
 published: 2026-07-31
 updated: 2026-08-11
 order: 12

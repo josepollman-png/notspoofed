@@ -2,6 +2,7 @@
 title: "SPF: should it end in ~all or -all?"
 description: "The difference matters far less than the arguments about it suggest, and the settings people choose instead of either are the ones that actually break things."
 question: "Should my SPF record end in ~all or -all?"
+category: "SPF"
 published: 2026-08-03
 updated: 2026-08-03
 order: 15

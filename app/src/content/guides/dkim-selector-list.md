@@ -2,6 +2,7 @@
 title: "DKIM selectors by provider"
 description: "The DKIM selector each major provider uses — and which are unguessable by design."
 question: "What DKIM selector does my email provider use?"
+category: "DKIM"
 published: 2026-08-06
 updated: 2026-08-06
 order: 55

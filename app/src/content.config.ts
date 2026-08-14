@@ -24,6 +24,20 @@ const guides = defineCollection({
     description: z.string().max(180),
     /** The question the reader typed into a search engine. */
     question: z.string(),
+    /**
+     * Grouping label shown on the index. A closed union rather than a free string, so a
+     * typo is a build error instead of a category of one — the index groups by exact
+     * match, and "Providers" vs "providers" would silently split a section in two.
+     */
+    category: z.enum([
+      'Getting started',
+      'SPF',
+      'DKIM',
+      'DMARC',
+      'Error messages',
+      'Providers',
+      'Bulk senders',
+    ]),
     // Coerced rather than z.string().date(): YAML parses an unquoted 2026-07-31 into
     // a Date, so a string schema fails unless every author remembers the quotes.
     published: z.coerce.date(),

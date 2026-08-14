@@ -2,6 +2,7 @@
 title: "SPF: too many DNS lookups"
 description: "SPF allows ten DNS lookups. Go over and receivers ignore your record entirely. How to count them, and the three ways to get back under."
 question: "Why does my SPF record say too many DNS lookups?"
+category: "SPF"
 published: 2026-07-31
 updated: 2026-07-31
 order: 10

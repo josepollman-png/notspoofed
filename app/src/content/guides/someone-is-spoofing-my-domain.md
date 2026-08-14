@@ -2,6 +2,7 @@
 title: "Someone is sending email as my domain"
 description: "Four different problems get called spoofing, and DMARC only fixes one of them. How to tell which one is happening to you before you change any DNS."
 question: "How do I stop someone sending email from my domain?"
+category: "Getting started"
 published: 2026-08-03
 updated: 2026-08-06
 order: 5
