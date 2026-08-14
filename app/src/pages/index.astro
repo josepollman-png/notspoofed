@@ -2,6 +2,8 @@
 import { getCollection } from 'astro:content';
 import DomainForm from '../components/DomainForm.astro';
 import Base from '../layouts/Base.astro';
+import { absoluteUrl } from '../lib/site.js';
+import { RATE_LIMIT } from '../lib/ratelimit.js';
 
 /**
  * Read from the collection rather than a hand-written list. The list was hardcoded and
@@ -16,12 +18,100 @@ const FEATURED = 6;
 
 const guides = (await getCollection('guides')).sort((a, b) => a.data.order - b.data.order);
 const featured = guides.slice(0, FEATURED);
+
+/**
+ * Site-level schema. The guide pages have carried TechArticle and FAQPage since they were
+ * written; the homepage — the page most likely to be cited as "the tool" — had none, so
+ * nothing machine-readable said what this is, who runs it, or that it costs nothing.
+ *
+ * @graph rather than two separate blocks, so the @id references resolve within one
+ * document instead of relying on a consumer stitching them together.
+ */
+const siteSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': absoluteUrl('/#org'),
+      name: 'notspoofed.com',
+      url: absoluteUrl('/'),
+      logo: absoluteUrl('/og-default.png'),
+      sameAs: ['https://github.com/josepollman-png/notspoofed'],
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': absoluteUrl('/#app'),
+      name: 'notspoofed',
+      applicationCategory: 'SecurityApplication',
+      operatingSystem: 'Web',
+      url: absoluteUrl('/'),
+      description:
+        'Free SPF, DKIM and DMARC checker that tells you exactly which record to publish to fix email authentication.',
+      publisher: { '@id': absoluteUrl('/#org') },
+      // price 0 is the claim worth making machine-readable: "free" in prose is a word
+      // every paid tool with a trial also uses.
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'SPF check with full include-chain DNS lookup counting',
+        'Corrected SPF record generation with minimal flattening',
+        'DKIM check across 50 common selectors with signing-key verification',
+        'DMARC check including subdomain policy inheritance and report-address authorisation',
+        'MTA-STS, TLS-RPT, BIMI and DNSSEC checks',
+        'In-browser email header analyzer',
+        'Gmail and Yahoo bulk-sender compliance checker',
+        'Free JSON API',
+      ],
+    },
+  ],
+};
+
+/**
+ * Answers first, markup second — never the other way round.
+ *
+ * Google requires FAQPage markup to correspond to content visible on the page, and marking
+ * up answers a reader cannot see is a manual-action risk rather than a clever shortcut. So
+ * this array renders the visible section *and* feeds the schema, which makes the two
+ * impossible to desynchronise.
+ */
+const faq = [
+  {
+    q: 'How do I check if my domain can be spoofed?',
+    a: 'Enter your domain above. It reads your public SPF, DKIM and DMARC records and tells you exactly which record to publish to close any gap that lets someone else send mail as your domain.',
+  },
+  {
+    q: 'Is it free, and is there a limit?',
+    a: `Free, with no account and no ads. There is one limit and it is technical rather than commercial: ${RATE_LIMIT.MAX_REQUESTS} checks a minute from the same IP address, because each check makes around fifty DNS queries. No paid tier lifts it.`,
+  },
+  {
+    q: 'Do you record the domains I check?',
+    a: 'No. A check is a read-only lookup of public DNS records, and the domain is not written down. Pasted email headers never leave your browser at all — the header analyzer parses them locally.',
+  },
+  {
+    q: 'Why does another checker say my DKIM is fine when this one does not?',
+    a: 'Usually wildcard DNS. Some domains answer every possible query, so a checker that treats any answer at selector._domainkey as proof will report keys that do not exist. This one verifies each hit is a genuine signing key, and says a miss is not proof DKIM is absent rather than guessing.',
+  },
+];
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faq.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
 ---
 
 <Base
   title="Check your SPF, DKIM and DMARC records — notspoofed.com"
   canonicalPath="/"
 >
+  {/* is:inline is explicit: these are JSON-LD data blocks, not code to be bundled.
+      Without it Astro infers the same thing but warns on every build. */}
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(siteSchema)} />
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+
   <h1>Find out why your email is failing authentication</h1>
   <p class="lede">
     Enter a domain. We read its public DNS records and tell you exactly what to
@@ -97,6 +187,16 @@ const featured = guides.slice(0, FEATURED);
         <a href="/guides">All {guides.length} guides</a>
       </p>
     )}
+
+    <h2>Common questions</h2>
+    <dl class="faq">
+      {faq.map((item) => (
+        <>
+          <dt>{item.q}</dt>
+          <dd>{item.a}</dd>
+        </>
+      ))}
+    </dl>
 
     <h2>Try one of these</h2>
     {/* nofollow: these are the only internal links into /check, and each crawl of a

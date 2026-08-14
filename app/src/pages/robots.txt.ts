@@ -14,27 +14,70 @@ import { absoluteUrl } from '../lib/site.js';
  * URL can still be indexed without content if something links to it, /check also
  * sends `X-Robots-Tag: noindex` — that covers crawlers which ignore this file.
  */
+const DISALLOW = [
+  'Disallow: /check',
+  // Same reasoning as /check — the JSON endpoint is the same unbounded, expensive
+  // work with a different Content-Type. /api (the docs page) stays crawlable.
+  'Disallow: /api/check',
+  // Prefix match on the query string only: /ip?ip=… is an unbounded result space,
+  // while bare /ip is a landing page we want indexed.
+  'Disallow: /ip?',
+  // Saved results from the tools app. Same reasoning as /check — unbounded URL
+  // space, every entry a one-off — and they already send noindex via X-Robots-Tag
+  // for the crawlers that ignore this file.
+  'Disallow: /result/',
+  'Allow: /',
+];
+
+/**
+ * Answer engines get their own groups, and every one repeats the rules above.
+ *
+ * This is the trap in the format: robots.txt groups are **not** merged. A crawler obeys
+ * the single most specific group that names it and ignores `User-agent: *` entirely, so
+ * a well-meant `User-agent: GPTBot / Allow: /` would hand exactly these crawlers the
+ * unbounded /check space that every other rule in this file exists to protect. Repeating
+ * `DISALLOW` in each group is what makes naming them safe.
+ *
+ * The site is already permissive to everything, so none of this grants new access. It
+ * states the position explicitly, which is the part an operator can point at.
+ *
+ * Two of these are not crawlers. `Google-Extended` and `Applebot-Extended` are usage
+ * controls — they govern whether already-crawled pages may feed Gemini and Apple
+ * Intelligence, and honour no fetch of their own. They belong here anyway: the answer is
+ * yes, and the token is the only way to say it.
+ */
+const ANSWER_ENGINES = [
+  // OpenAI publishes three, and they do different jobs. GPTBot crawls for training;
+  // OAI-SearchBot builds the ChatGPT search index; ChatGPT-User fetches a page live when
+  // someone asks about it. Naming only GPTBot — as most guides do — leaves the two that
+  // actually produce citations unaddressed.
+  'GPTBot',
+  'OAI-SearchBot',
+  'ChatGPT-User',
+  'ClaudeBot',
+  'Claude-SearchBot',
+  'PerplexityBot',
+  'Google-Extended',
+  'Applebot-Extended',
+];
+
 export const GET: APIRoute = () =>
   new Response(
     [
+      ...ANSWER_ENGINES.flatMap((agent) => [`User-agent: ${agent}`, ...DISALLOW, '']),
+
+      // Last, and deliberately so. The wildcard group is the fallback for everything not
+      // named above; order carries no meaning to a parser, but it reads correctly.
       'User-agent: *',
-      'Disallow: /check',
-      // Same reasoning as /check — the JSON endpoint is the same unbounded, expensive
-      // work with a different Content-Type. /api (the docs page) stays crawlable.
-      'Disallow: /api/check',
-      // Prefix match on the query string only: /ip?ip=… is an unbounded result space,
-      // while bare /ip is a landing page we want indexed.
-      'Disallow: /ip?',
-      // Saved results from the tools app. Same reasoning as /check — unbounded URL
-      // space, every entry a one-off — and they already send noindex via X-Robots-Tag
-      // for the crawlers that ignore this file.
-      'Disallow: /result/',
-      'Allow: /',
+      ...DISALLOW,
       '',
       // A sitemap index. It references this app's own /sitemap-site.xml and the tools
       // application's /tools/sitemap.xml, so one entry covers both halves of the
       // hostname — and anything added later.
       `Sitemap: ${absoluteUrl('/sitemap.xml')}`,
+      // Not a standard directive, and no crawler is required to read it. It costs one
+      // line and is the only in-band way to advertise the file.
+      `Llms-txt: ${absoluteUrl('/llms.txt')}`,
       '',
     ].join('\n'),
     { headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
