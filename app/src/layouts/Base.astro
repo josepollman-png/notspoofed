@@ -10,6 +10,14 @@ interface Props {
   /** Root-relative path to a 1200x630 card. Omit to use the site-wide default. */
   image?: string;
   imageAlt?: string;
+  /**
+   * Social-card overrides. A `<title>` is written for a search result — it carries the
+   * qualifier and the year — while a shared link wants the claim on its own. Most pages
+   * are well served by one string for both, so these default to it.
+   */
+  ogTitle?: string;
+  ogDescription?: string;
+  ogType?: 'website' | 'article';
 }
 
 const {
@@ -19,6 +27,9 @@ const {
   noindex = false,
   image = '/og-default.png',
   imageAlt = 'notspoofed.com — find out why your email is failing authentication.',
+  ogTitle = title,
+  ogDescription = description,
+  ogType = 'website',
 } = Astro.props;
 
 const canonical = canonicalPath ? absoluteUrl(canonicalPath) : null;
@@ -42,18 +53,18 @@ const imageUrl = absoluteUrl(image);
 
     {/* This tool gets pasted into Slack threads and forum replies. Without these a
         shared link renders as bare text and the free distribution is wasted. */}
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content="notspoofed.com" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
+    <meta property="og:title" content={ogTitle} />
+    <meta property="og:description" content={ogDescription} />
     {canonical && <meta property="og:url" content={canonical} />}
     <meta property="og:image" content={imageUrl} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content={imageAlt} />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content={description} />
+    <meta name="twitter:title" content={ogTitle} />
+    <meta name="twitter:description" content={ogDescription} />
     <meta name="twitter:image" content={imageUrl} />
 
     {/* SVG first for anything modern, 32px PNG for the browsers that ignore it. Both are

@@ -1,0 +1,101 @@
+YC DMARC dataset — data quality report
+============================================================
+
+Rows read from results.csv: 6122
+Rows included in published stats: 6112
+  conclusively classified: 6013
+  unresolved (excluded from percentages): 99
+
+EXCLUSIONS
+  mis_attributed       8
+  platform_hosted      2
+  invalid_domain       0
+  duplicate_domain     0
+
+RE-RESOLUTION
+  subdomain rows re-checked with RFC 7489 org fallback: 15
+  malformed rows repaired and fully re-scanned:         11
+  verdicts changed as a result:                         10
+
+HEADLINE
+  spoofable 3666/6013 = 61.0%
+
+VERDICT CHANGES
+  100x.bot: UNKNOWN -> PROTECTED (own record)
+  business.stayflexi.com: SPOOFABLE -> PROTECTED (inherited from stayflexi.com (p=))
+  business.triply.co: SPOOFABLE -> PROTECTED (inherited from triply.co (p=))
+  getprosper.ai: SPOOFABLE -> PROTECTED (own record)
+  go.givecampus.com: SPOOFABLE -> PROTECTED (inherited from givecampus.com (p=))
+  hyperbeam.com: SPOOFABLE -> PROTECTED (own record)
+  parameter.ai: UNKNOWN -> PROTECTED (own record)
+  pragmaticleaders.io: SPOOFABLE -> PROTECTED (own record)
+  proliferate.com: SPOOFABLE -> PROTECTED (own record)
+  video.golpoai.com: SPOOFABLE -> PROTECTED (inherited from golpoai.com (sp=))
+
+REPAIRED (11)
+  100x: '100x.bot?utm_source=inbound&utm_medium=bookface&utm_campaign=yc&utm_id=122' -> 100x.bot
+  Entvin: 'entvin.com?utm_source=yc' -> entvin.com
+  Hyperbeam: 'hyperbeam.com?ch=yc' -> hyperbeam.com
+  Membo: 'membo.ee?lang=en' -> membo.ee
+  Parameter (fka Hex Security): 'parameter.ai?utm_source=ycombinator&utm_medium=referral&utm_campaign=parameter-profile' -> parameter.ai
+  Pragmatic Leaders (Ankai Inc): 'pragmaticleaders.io, ostronaut.com' -> pragmaticleaders.io
+  Proliferate: 'proliferate.com?utm_source=yc&utm_medium=referral&utm_campaign=profile' -> proliferate.com
+  Prosper: 'getprosper.ai?utm_source=yc&utm_medium=directory&utm_campaign=yc_directory' -> getprosper.ai
+  Ravion: 'ravion.com?ref=bookface' -> ravion.com
+  SigmaMind AI: 'sigmamind.ai?utm_source=yc&utm_medium=web' -> sigmamind.ai
+  crmCopilot: 'crmcopilot.co?utm_source=yc' -> crmcopilot.co
+
+AGGREGATOR (8)
+  FameGame -> itunes.apple.com (excluded)
+  OrderAhead -> crunchbase.com (excluded)
+  Product Hunt -> producthunt.com (excluded)
+  RecordBook -> play.google.com (excluded)
+  SlidePay -> angel.co (excluded)
+  TypeLess -> apps.apple.com (excluded)
+  Vidpresso -> facebook.com (excluded)
+  Y Combinator -> ycombinator.com (excluded)
+
+PLATFORM (2)
+  Sorted -> sorted-lp.webflow.io (excluded)
+  Zenter -> googleblog.blogspot.com (excluded)
+
+CASE (38)
+  AYCFund.com -> aycfund.com
+  AndiAI.com -> andiai.com
+  Argo.LA -> argo.la
+  Avametric.com -> avametric.com
+  Avocademy.com -> avocademy.com
+  BrowserOS.com -> browseros.com
+  CapWay.com -> capway.com
+  ClaytonFarms.com -> claytonfarms.com
+  Commissary.Club -> commissary.club
+  Dayra.co -> dayra.co
+  DegreesOfFreedom.org -> degreesoffreedom.org
+  FifthTry.com -> fifthtry.com
+  GetAgency.com -> getagency.com
+  GoBonfire.com -> gobonfire.com
+  HelloLunaJoy.com -> hellolunajoy.com
+  Holapana.com -> holapana.com
+  InnaMed.com -> innamed.com
+  Innoveinmedical.com -> innoveinmedical.com
+  MaverickX.com -> maverickx.com
+  MentalHappy.com -> mentalhappy.com
+  ObieInsurance.com -> obieinsurance.com
+  RTCanary.com -> rtcanary.com
+  SaturnOS.com -> saturnos.com
+  Soon.app -> soon.app
+  StayQrious.com -> stayqrious.com
+  StyleLend.com -> stylelend.com
+  UpBanx.com -> upbanx.com
+  WeReno.com -> wereno.com
+  XTraffic.com -> xtraffic.com
+  careCycle.ai -> carecycle.ai
+  getHelpNow.in -> gethelpnow.in
+  joinTaro.com -> jointaro.com
+  peopleCQ.com -> peoplecq.com
+  tEQuitable.com -> tequitable.com
+  teaBOT.com -> teabot.com
+  thisisL.com -> thisisl.com
+  useBlueHill.com -> usebluehill.com
+  useStable.com -> usestable.com
+

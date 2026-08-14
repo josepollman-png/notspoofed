@@ -1,0 +1,89 @@
+---
+import { getEntry, render } from 'astro:content';
+import Research from '../../layouts/Research.astro';
+import { absoluteUrl } from '../../lib/site.js';
+
+const entry = (await getEntry('research', 'yc-dmarc-dataset'))!;
+const { Content } = await render(entry);
+
+const CSV = absoluteUrl('/data/yc-dmarc-2026-08.csv');
+const STUDY = absoluteUrl('/research/yc-email-spoofing-study');
+
+/**
+ * The most valuable markup on the site.
+ *
+ * A Dataset with a resolvable DataDownload is what makes this citable by Google Dataset
+ * Search and by assistants that will not cite prose. Every field here is checkable
+ * against the file it points at.
+ *
+ * `contentSize` is deliberately absent: the page states "~576 KB" and the file is 587,521
+ * bytes, so any value written here either contradicts the page or restates an
+ * approximation as a fact. Omitting is better than publishing a second, different number.
+ */
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'Dataset',
+  '@id': absoluteUrl('/research/yc-dmarc-dataset#dataset'),
+  name: 'DMARC posture of 6,122 Y Combinator companies',
+  description:
+    'DMARC policy, SPF presence and MX status for 6,122 unique Y Combinator company domains, with batch and industry labels. Collected by passive public DNS resolution in August 2026.',
+  url: absoluteUrl('/research/yc-dmarc-dataset'),
+  identifier: absoluteUrl('/research/yc-dmarc-dataset'),
+  license: 'https://creativecommons.org/licenses/by/4.0/',
+  isAccessibleForFree: true,
+  creator: {
+    '@type': 'Organization',
+    name: 'notspoofed.com',
+    url: absoluteUrl('/'),
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'notspoofed.com',
+    url: absoluteUrl('/'),
+  },
+  datePublished: '2026-08-14',
+  temporalCoverage: '2026-08-14',
+  measurementTechnique:
+    'Passive public DNS resolution of _dmarc TXT, SPF TXT and MX records',
+  // The CSV's own column names, so a consumer can tell what is in the file without
+  // downloading it first.
+  variableMeasured: [
+    'name',
+    'batch',
+    'industry',
+    'domain',
+    'org_domain',
+    'spf',
+    'mx',
+    'dmarc_policy',
+    'policy_source',
+    'verdict',
+    'flag',
+    'included',
+  ],
+  keywords: ['DMARC', 'SPF', 'email authentication', 'email spoofing', 'Y Combinator', 'DNS'],
+  distribution: [
+    {
+      '@type': 'DataDownload',
+      name: 'yc-dmarc-2026-08.csv',
+      description: 'One row per unique company domain. Filter to included=yes to reproduce the published figures.',
+      encodingFormat: 'text/csv',
+      contentUrl: CSV,
+    },
+    {
+      '@type': 'DataDownload',
+      name: 'data-quality-report.txt',
+      description: 'Audit trail: every row excluded, repaired or re-resolved, itemised by domain.',
+      encodingFormat: 'text/plain',
+      contentUrl: absoluteUrl('/data/yc-dmarc-data-quality-report.txt'),
+    },
+  ],
+  isBasedOn: STUDY,
+  citation: STUDY,
+  mainEntityOfPage: absoluteUrl('/research/yc-dmarc-dataset'),
+};
+---
+
+<Research entry={entry} schema={schema}>
+  <Content />
+</Research>

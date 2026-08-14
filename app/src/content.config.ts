@@ -50,4 +50,33 @@ const guides = defineCollection({
   }),
 });
 
-export const collections = { guides };
+/**
+ * Original research and the pages derived from it.
+ *
+ * Separate from `guides` because the constraints differ. A guide is ours to revise; these
+ * carry verified figures that reconcile against a published dataset, so the body is
+ * imported verbatim and never edited. The head metadata arrives with the source rather
+ * than being written here, which is why `titleTag` is its own field: the `<title>` and
+ * the on-page `<h1>` are deliberately different strings.
+ *
+ * `draft` exists because these publish on a schedule after the study lands. A draft still
+ * resolves at its URL so it can be reviewed, but sends `noindex` and is kept out of the
+ * sitemap and llms.txt.
+ */
+const research = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/research' }),
+  schema: z.object({
+    /** The on-page <h1>. */
+    title: z.string(),
+    /** The <title> element. Written for a search result, not for the page. */
+    titleTag: z.string(),
+    description: z.string(),
+    /** Canonical path. Explicit rather than derived — these do not share a prefix. */
+    path: z.string(),
+    published: z.coerce.date(),
+    updated: z.coerce.date(),
+    draft: z.boolean().default(false),
+  }),
+});
+
+export const collections = { guides, research };

@@ -1,0 +1,73 @@
+---
+import { getEntry, render } from 'astro:content';
+import Research from '../layouts/Research.astro';
+import { absoluteUrl } from '../lib/site.js';
+
+const entry = (await getEntry('research', 'spf-vs-dmarc'))!;
+const { Content } = await render(entry);
+
+const URL_ = absoluteUrl('/spf-vs-dmarc');
+
+/**
+ * Article + FAQPage, per the source file's schema note.
+ *
+ * Every answer below is taken from the page's own prose rather than written for the
+ * markup — the figures are the study's and must not drift from it.
+ */
+const schema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: "SPF vs DMARC: Why SPF Alone Doesn't Stop Email Spoofing",
+      description: entry.data.description,
+      datePublished: '2026-08-14',
+      author: { '@type': 'Organization', name: 'notspoofed.com', url: absoluteUrl('/') },
+      publisher: { '@type': 'Organization', name: 'notspoofed.com', url: absoluteUrl('/') },
+      mainEntityOfPage: URL_,
+      isBasedOn: absoluteUrl('/research/yc-email-spoofing-study'),
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'Is SPF enough to stop spoofing?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'No. SPF answers only whether a server is allowed to send mail for the envelope sender’s domain, and never looks at the From: header your recipient sees. An attacker can pass SPF on a domain they control while displaying your address. In a scan of 6,122 domains, 73.1% of the spoofable ones already published a valid SPF record.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: "What's the difference between SPF and DMARC?",
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'SPF authorises sending servers for the envelope sender. DMARC adds alignment — it requires that the domain in the visible From: header matches the domain that passed SPF or DKIM — and adds a policy telling receivers what to do when alignment fails. SPF and DKIM are the inputs; DMARC is the part that turns them into protection.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Do I need DKIM if I have SPF?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes. DKIM signs the message so it survives forwarding, which SPF does not. But DKIM alone does not require the signing domain to match the From: domain either, so a message can carry a valid signature from an attacker’s domain while displaying yours. Both are inputs to DMARC.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Does p=none protect my domain?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'No. p=none means monitor only: alignment is checked, failures are reported to you, and the forged message is delivered to your customer anyway. From an attacker’s perspective a p=none domain is exactly as spoofable as one with no DMARC record at all. It is the correct first step, not a destination.',
+          },
+        },
+      ],
+    },
+  ],
+};
+---
+
+<Research entry={entry} schema={schema}>
+  <Content />
+</Research>

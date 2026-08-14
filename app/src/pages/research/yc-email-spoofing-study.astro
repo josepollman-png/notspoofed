@@ -1,0 +1,204 @@
+---
+import Base from '../../layouts/Base.astro';
+// Both imported raw and emitted with set:html, so the published bytes are the authored
+// bytes. The figures on this page reconcile against the dataset it links to; re-typing or
+// re-serialising either one is a chance to introduce a difference nobody would spot.
+import body from '../../data/yc-study-body.html?raw';
+import schema from '../../data/yc-study-schema.json?raw';
+---
+
+<Base
+  title="61.0% of Y Combinator Companies Can Be Email-Spoofed (2026 Study)"
+  description="We scanned all 6,122 YC company domains for DMARC. 61.0% can be email-spoofed, and the rate is flat across 15 years of batches. Full data by era and industry, plus how to fix it."
+  canonicalPath="/research/yc-email-spoofing-study"
+  ogTitle="61.0% of Y Combinator companies can be email-spoofed"
+  ogDescription="We scanned every YC company's DMARC record. The exposure isn't concentrated in new startups — the rate has been flat since 2011."
+  ogType="article"
+>
+  <script type="application/ld+json" is:inline set:html={schema} />
+
+  <article class="study" set:html={body} />
+</Base>
+
+<style>
+  /*
+   * The source shipped as a standalone document. Its document-level rules — the reset,
+   * `body`, the font stack, base typography, the `article` wrapper — are dropped, because
+   * Base.astro already owns those and two sets would fight.
+   *
+   * Everything below is the component CSS, kept because the page's evidence is built out
+   * of it: the bar charts are pure CSS with an inline `width:` per row, and stripping this
+   * block would silently turn every chart into an empty box. The source's own palette
+   * (blue #1a56db, red #c0392b) is mapped onto the site tokens so the page reads as part
+   * of the site rather than as an embedded document. No layout or spacing was changed.
+   *
+   * `:global()` throughout: the markup arrives via set:html and therefore carries no
+   * scope attribute. `.study` itself does, which keeps all of this contained to this page.
+   */
+  .study :global(h1) {
+    font-size: 2.35rem;
+    line-height: 1.18;
+    letter-spacing: -0.022em;
+    margin: 0 0 0.5rem;
+    font-weight: 700;
+  }
+  .study :global(h2) {
+    font-size: 1.4rem;
+    line-height: 1.3;
+    letter-spacing: -0.012em;
+    margin: 2.9rem 0 0.85rem;
+    font-weight: 650;
+  }
+  .study :global(.dek) { color: var(--muted); font-size: 0.94rem; margin: 0 0 2.4rem; }
+  .study :global(p) { margin: 0 0 1.15rem; }
+  .study :global(strong) { font-weight: 650; }
+  .study :global(code) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.08em 0.38em;
+    font-size: 0.87em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  /* headline stat */
+  .study :global(.stat) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 28px;
+    margin: 0 0 1.6rem;
+    text-align: center;
+  }
+  .study :global(.stat .big) {
+    font-size: 3.5rem;
+    line-height: 1;
+    font-weight: 700;
+    color: var(--critical);
+    letter-spacing: -0.03em;
+  }
+  .study :global(.stat .cap) { color: var(--muted); font-size: 0.93rem; margin-top: 0.55rem; }
+
+  /* method callout */
+  .study :global(.method) {
+    border-left: 3px solid var(--border);
+    padding: 0.15rem 0 0.15rem 1.05rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin: 1.6rem 0;
+  }
+
+  /* Tables scroll inside their own box; the page never scrolls sideways. */
+  .study :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.3rem 0;
+    font-size: 0.93rem;
+    display: block;
+    overflow-x: auto;
+  }
+  .study :global(th), .study :global(td) {
+    text-align: left;
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .study :global(th) {
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 0.83rem;
+    text-transform: uppercase;
+    letter-spacing: 0.045em;
+    white-space: nowrap;
+  }
+  .study :global(td.n), .study :global(th.n) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .study :global(tr.total td) { font-weight: 650; border-bottom: none; }
+
+  /* css-only bar chart */
+  .study :global(.bars) { margin: 1.4rem 0 0.6rem; }
+  .study :global(.bar) {
+    display: grid;
+    grid-template-columns: 104px 1fr 52px;
+    align-items: center;
+    gap: 11px;
+    margin: 0.42rem 0;
+  }
+  .study :global(.bar .lab) {
+    font-size: 0.86rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .study :global(.bar .track) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    height: 23px;
+    overflow: hidden;
+  }
+  .study :global(.bar .fill) {
+    /*
+     * `display:block` is the one declaration added to the source's CSS, and it is a bug
+     * fix rather than a restyle.
+     *
+     * `.fill` is a <span> carrying an inline `width:59.6%`. Width and height do not apply
+     * to non-replaced inline elements, so every bar rendered as an empty track — verified
+     * by serving the untouched source file, which has the same fault. `.bar` is a grid, so
+     * `.track` is blockified as a grid item, but `.track` is not itself a grid container
+     * and `.fill` therefore stays inline.
+     *
+     * Left alone, the charts that carry the study's central finding are empty boxes.
+     */
+    display: block;
+    background: var(--critical);
+    height: 100%;
+    border-radius: 4px;
+    opacity: 0.82;
+  }
+  .study :global(.bar .val) {
+    font-size: 0.86rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    font-weight: 600;
+  }
+  .study :global(.note) { font-size: 0.85rem; color: var(--muted); margin: 0.5rem 0 0; }
+
+  .study :global(.cta) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 28px;
+    margin: 2.6rem 0;
+    text-align: center;
+  }
+  .study :global(.cta a.btn) {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--bg);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.72rem 1.5rem;
+    border-radius: 8px;
+    margin-top: 0.35rem;
+  }
+
+  .study :global(ol), .study :global(ul) { padding-left: 1.15rem; }
+  .study :global(li) { margin: 0.42rem 0; }
+  .study :global(.named li) { margin: 0.7rem 0; }
+
+  .study :global(footer.meth) {
+    margin-top: 3.2rem;
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .study :global(footer.meth h2) { font-size: 1.05rem; color: var(--text); margin-top: 0; }
+
+  @media (max-width: 520px) {
+    .study :global(h1) { font-size: 1.85rem; }
+    .study :global(.stat .big) { font-size: 2.7rem; }
+    .study :global(.bar) { grid-template-columns: 84px 1fr 46px; gap: 8px; }
+  }
+</style>

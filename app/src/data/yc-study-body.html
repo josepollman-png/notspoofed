@@ -1,0 +1,140 @@
+
+  <h1>We scanned every Y&nbsp;Combinator company. 61.0% can be email-spoofed.</h1>
+  <p class="dek">Published by <a href="https://notspoofed.com">notspoofed.com</a> — August 14, 2026</p>
+
+  <p>Email spoofing is still one of the cheapest ways to impersonate a company. A domain is protected only if it publishes a DMARC record set to enforce — <code>p=quarantine</code> or <code>p=reject</code>. Without that, anyone can send mail that appears to come from the company's exact address, and receiving servers will deliver it.</p>
+
+  <p>So we checked every company in the Y Combinator directory. Here's what we found.</p>
+
+  <h2>The headline</h2>
+
+  <div class="stat">
+    <div class="big">61.0%</div>
+    <div class="cap">3,666 of 6,013 YC companies can be email-spoofed</div>
+  </div>
+
+  <p>Of <strong>6,013</strong> YC companies whose DMARC status we could resolve conclusively, <strong>3,666 (61.0%)</strong> can be spoofed — they publish no DMARC record at all, or a DMARC policy of <code>p=none</code>, which only monitors and still lets forged mail through. <strong>2,347 (39.0%)</strong> are at enforcement.</p>
+
+  <p>The split inside that spoofable group is close to even: <strong>1,743</strong> publish no DMARC record whatsoever, and <strong>1,923</strong> publish <code>p=none</code>. On the protected side, <strong>1,343</strong> are at <code>quarantine</code> and <strong>1,004</strong> at <code>reject</code>.</p>
+
+  <p>We pulled 6,122 unique company domains in total. Ten were dropped because the directory pointed them at somebody else's DNS — an app-store listing, a Crunchbase profile, a hosting subdomain — leaving 6,112. Of those, 99 did not return a conclusive DNS answer after three attempts and are excluded from every percentage on this page rather than being counted either way.</p>
+
+  <p class="method">Method in one line: we read each domain's public <code>_dmarc</code> DNS record. Spoofable = no DMARC or <code>p=none</code>. No email was sent and nothing was actually spoofed — it's the same public check <a href="https://notspoofed.com">notspoofed.com</a> runs on one domain at a time.</p>
+
+  <h2>The finding we didn't expect: it isn't a new-company problem</h2>
+
+  <p>Going in, we assumed the exposure would be concentrated in the newest batches — young teams that simply haven't gotten to email security yet. <strong>The data says otherwise.</strong> Once you exclude domains that no longer receive mail at all, the spoofable rate is essentially flat across fifteen years of YC batches:</p>
+
+  <table>
+    <thead>
+      <tr><th>Batch era</th><th class="n">Companies</th><th class="n">Spoofable</th><th class="n">%</th><th class="n">Operating only</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>2005–2010</td><td class="n">193</td><td class="n">152</td><td class="n">78.8%</td><td class="n">73.5%</td></tr>
+      <tr><td>2011–2015</td><td class="n">678</td><td class="n">441</td><td class="n">65.0%</td><td class="n">59.6%</td></tr>
+      <tr><td>2016–2020</td><td class="n">1,501</td><td class="n">925</td><td class="n">61.6%</td><td class="n">57.7%</td></tr>
+      <tr><td>2021–2023</td><td class="n">1,811</td><td class="n">1,076</td><td class="n">59.4%</td><td class="n">57.6%</td></tr>
+      <tr><td>2024–2026</td><td class="n">1,829</td><td class="n">1,071</td><td class="n">58.6%</td><td class="n">58.2%</td></tr>
+    </tbody>
+  </table>
+
+  <p>The last column restricts to domains that publish MX records — companies actually running email today. Read down it:</p>
+
+  <div class="bars">
+    <div class="bar"><span class="lab">2011–2015</span><span class="track"><span class="fill" style="width:59.6%"></span></span><span class="val">59.6%</span></div>
+    <div class="bar"><span class="lab">2016–2020</span><span class="track"><span class="fill" style="width:57.7%"></span></span><span class="val">57.7%</span></div>
+    <div class="bar"><span class="lab">2021–2023</span><span class="track"><span class="fill" style="width:57.6%"></span></span><span class="val">57.6%</span></div>
+    <div class="bar"><span class="lab">2024–2026</span><span class="track"><span class="fill" style="width:58.2%"></span></span><span class="val">58.2%</span></div>
+    <p class="note">Share of operating YC companies (live MX) that can be spoofed, by batch era.</p>
+  </div>
+
+  <p>A company from the 2024–2026 batches is no more likely to be spoofable than one from 2011–2015. DMARC enforcement is not something startups drift into as they mature. Absent a deliberate decision, it doesn't happen at all.</p>
+
+  <p>The earliest era, 2005–2010, sits higher at 73.5%, but we'd treat that as directional rather than a finding: it covers just 193 companies in total — 9 to 61 per year — and the individual years swing between 72% and 88%, which is what samples that small do. The claim the data actually supports is the flat line from 2011 onward. What the early era does contain is a large share of domains whose companies no longer exist, which points at a separate result.</p>
+
+  <h2>Abandoned domains are the most spoofable of all</h2>
+
+  <p>Of the 520 classified domains publishing no MX records — no live mail, typically a company that exited or shut down — <strong>87.9% are spoofable</strong>, against 58.4% for domains with live mail.</p>
+
+  <div class="bars">
+    <div class="bar"><span class="lab">No live mail</span><span class="track"><span class="fill" style="width:87.9%"></span></span><span class="val">87.9%</span></div>
+    <div class="bar"><span class="lab">Live mail</span><span class="track"><span class="fill" style="width:58.4%"></span></span><span class="val">58.4%</span></div>
+  </div>
+
+  <p>These are the quietest risk in the dataset. An acquired startup's old domain still carries brand recognition with its former customers, still passes a casual eye test in an inbox, and has nobody monitoring it. If you've wound a company down and still own the domain, publishing <code>v=DMARC1; p=reject;</code> on it costs nothing and closes the door permanently.</p>
+
+  <h2>SPF is giving people false confidence</h2>
+
+  <p><strong>82.2%</strong> of the domains we scanned publish an SPF record. Among the <em>spoofable</em> domains, <strong>73.1%</strong> publish SPF.</p>
+
+  <p>That gap is the single most useful takeaway here. Nearly three-quarters of the companies that can be spoofed have already done the piece of email authentication that feels like the fix — and SPF alone does not stop the attack people actually care about. SPF validates the hidden envelope sender, not the <code>From:</code> header your recipient sees. Without a DMARC policy at enforcement, a forged message showing your exact address still lands in the inbox. A lot of these teams believe this is handled.</p>
+
+  <h2>By industry</h2>
+
+  <table>
+    <thead>
+      <tr><th>Industry</th><th class="n">Companies</th><th class="n">Spoofable</th><th class="n">%</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Consumer</td><td class="n">832</td><td class="n">627</td><td class="n">75.4%</td></tr>
+      <tr><td>Industrials</td><td class="n">443</td><td class="n">310</td><td class="n">70.0%</td></tr>
+      <tr><td>Education</td><td class="n">119</td><td class="n">82</td><td class="n">68.9%</td></tr>
+      <tr><td>Healthcare</td><td class="n">687</td><td class="n">462</td><td class="n">67.2%</td></tr>
+      <tr><td>Real Estate &amp; Construction</td><td class="n">160</td><td class="n">93</td><td class="n">58.1%</td></tr>
+      <tr><td>B2B</td><td class="n">3,075</td><td class="n">1,710</td><td class="n">55.6%</td></tr>
+      <tr><td>Fintech</td><td class="n">637</td><td class="n">347</td><td class="n">54.5%</td></tr>
+      <tr><td>Government</td><td class="n">43</td><td class="n">23</td><td class="n">53.5%</td></tr>
+      <tr><td>Unspecified</td><td class="n">17</td><td class="n">12</td><td class="n">70.6%</td></tr>
+      <tr class="total"><td>All classified</td><td class="n">6,013</td><td class="n">3,666</td><td class="n">61.0%</td></tr>
+    </tbody>
+  </table>
+
+  <p>Fintech and B2B lead, which tracks — both tend to face compliance pressure and enterprise security reviews that put DMARC on the checklist. Consumer is the laggard at 75.4%, and it's arguably the worst place for it: consumer brands have large, non-technical user bases who have no way to tell a forged <code>support@</code> message from a real one. Healthcare at 67.2% is a close second concern for the same reason.</p>
+
+  <h2>The well-known names mostly get it right</h2>
+
+  <p>To sanity-check the scanner, we separately checked 21 of the best-known YC alumni by hand before the full run. 20 of 21 — Stripe, Airbnb, Coinbase, DoorDash, Dropbox, Reddit, Zapier, Supabase and others — are at <code>quarantine</code> or <code>reject</code>. The single exception was Warp, the terminal company, at <code>p=none</code>. Fifteen of those 21 appear in the directory under the same domain we checked by hand, and the full scan returned an identical verdict for all fifteen; the other six are listed under a different domain or not listed at all, so there was nothing to compare.</p>
+
+  <p>Scale and technical maturity clearly correlate with enforcement. But note what the batch table above says: it isn't age that gets companies there. It's someone deciding to do it.</p>
+
+  <h2>A few companies not yet at enforcement</h2>
+
+  <p>These are established, active YC companies whose domains were at <code>p=none</code> or had no DMARC record when we scanned, each re-verified against two independent DNS resolvers before publishing. This is not a wall of shame — and the detail worth noticing is that four of the five have <em>already started</em>: they publish a <code>rua=</code> reporting address, meaning someone deliberately set up DMARC monitoring and is collecting data. That's the correct first move. The rollout just hasn't reached enforcement yet, which is where the protection actually begins.</p>
+
+  <ul class="named">
+    <li><strong>Rappi</strong> (W16, on-demand delivery, LatAm) — <code>p=none</code>, with aggregate reports going to an internal <code>safemailgroup@</code> address. Monitoring is live; the policy isn't.</li>
+    <li><strong>GrubMarket</strong> (W15, food supply chain) — no DMARC record published. Live mail on Google Workspace, so a monitoring record is a few minutes of work.</li>
+    <li><strong>Nowports</strong> (W19, LatAm logistics) — <code>p=none</code> with both aggregate and forensic reporting configured to a <code>cyber-sysadmin@</code> address. This is a team clearly working the problem.</li>
+    <li><strong>SmartAsset</strong> (S12, personal finance marketplace) — <code>p=none</code>, with <code>sp=none</code> set explicitly for subdomains and full <code>rua</code>/<code>ruf</code> reporting.</li>
+    <li><strong>Bellabeat</strong> (W14, women's wellness hardware) — <code>p=none</code>, no reporting address configured.</li>
+  </ul>
+
+  <p>If you're at any of these companies: the next step is the same one for all of you, and we'd be glad to help — no pitch, just the DNS record.</p>
+
+  <h2>If your domain is on the wrong side of this</h2>
+
+  <ol>
+    <li>Check it in 5 seconds: <strong><a href="https://notspoofed.com">notspoofed.com</a></strong>.</li>
+    <li>If you have no DMARC, publish a monitoring record first: <code>v=DMARC1; p=none; rua=mailto:you@yourdomain.com</code> and watch the reports.</li>
+    <li>Once your legitimate mail passes, move to <code>p=quarantine</code>, then <code>p=reject</code>. That last step is the one that actually stops spoofing.</li>
+  </ol>
+
+  <p>Step 3 is the whole ballgame. Based on this data, <strong>1,923 YC companies have done steps 1 and 2 and stopped</strong> — they are sitting at <code>p=none</code>, collecting reports nobody may be reading, with the same exposure as the companies that did nothing.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .2rem"><strong>Can your domain be spoofed?</strong></p>
+    <p style="margin:0;color:var(--muted);font-size:.94rem">Free check of your SPF, DKIM and DMARC records. No signup.</p>
+    <a class="btn" href="https://notspoofed.com">Check my domain</a>
+  </div>
+
+  <footer class="meth">
+    <h2>Methodology</h2>
+    <p>We pulled the Y Combinator company directory (6,168 companies), extracted each company's primary domain, de-duplicated, and arrived at 6,122 unique domains. For each we queried the <code>_dmarc.&lt;domain&gt;</code> TXT record over DNS, plus the domain's TXT records for SPF and its MX records to establish whether it still handles mail.</p>
+    <p>We classified a domain as <em>spoofable</em> if it published no DMARC record or a policy of <code>p=none</code>, and <em>protected</em> at <code>p=quarantine</code> or <code>p=reject</code>. SPF presence was recorded but never used for the verdict, since SPF alone does not prevent visible <code>From:</code> header spoofing.</p>
+    <p><strong>Subdomains follow RFC 7489.</strong> Where the directory lists a subdomain (<code>web.thebyte.app</code>, <code>go.givecampus.com</code>), a direct <code>_dmarc</code> lookup is not the answer. RFC 7489 §6.6.3 specifies that when no record exists at the subdomain, receivers fall back to the <em>organizational</em> domain's record and apply its <code>sp=</code> value, or its <code>p=</code> value when <code>sp=</code> is absent — so a subdomain can be fully protected by its parent while looking bare on a direct query. All 15 such domains were re-resolved with that fallback, and 4 changed from spoofable to protected. Organizational domains come from the Public Suffix List with private suffixes included, so a company hosted at <code>something.vercel.app</code> is treated as its own organizational domain rather than inheriting Vercel's policy.</p>
+    <p><strong>Failed lookups are not treated as missing records.</strong> A DNS timeout and a genuine absence of a DMARC record look identical if you only test for an empty response, which would inflate the spoofable count. Every lookup was retried up to three times, and only an authoritative answer (records returned, or NXDOMAIN/NoAnswer) was accepted as conclusive. The 99 domains that never resolved conclusively are reported as unknown and excluded from all percentages.</p>
+    <p><strong>Rows measuring somebody else's DNS were removed.</strong> The directory sometimes points a defunct or acquired company at an aggregator or an app-store listing (<code>angel.co</code>, <code>itunes.apple.com</code>), or at a hosting subdomain. Those 10 rows are excluded. Domain strings were lowercased and stripped of tracking parameters before resolution — 11 arrived carrying <code>?utm_source=…</code>, which is not a resolvable hostname, so the original lookup returned NXDOMAIN and the row was wrongly recorded as having no DMARC record. Those were repaired and re-scanned.</p>
+    <p>These three corrections all pushed rows <em>out</em> of the spoofable bucket: uncorrected, they inflate the headline figure by about a point in the direction that flatters the finding. The full audit trail of every row changed, repaired or excluded is published alongside the dataset. The five named companies above were additionally re-verified by hand against both Cloudflare (1.1.1.1) and Google (8.8.8.8) resolvers.</p>
+    <p>All checks are passive public-DNS reads. No email was sent, and no domain was actually spoofed. Data collected August 14, 2026; DNS records change over time, and we'd expect some of the specific companies named here to be at enforcement by the time you read this. The <a href="/research/yc-dmarc-dataset">raw dataset</a> is available for download under CC BY 4.0, alongside the full audit trail of every row changed, repaired or excluded.</p>
+  </footer>
+

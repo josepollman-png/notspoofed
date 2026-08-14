@@ -31,6 +31,17 @@ export const GET: APIRoute = async () => {
       changefreq: 'monthly',
       priority: '0.8',
     })),
+    // Research pages carry their own canonical path — they do not share a prefix. Drafts
+    // are filtered out here as well as sending noindex: a page listed in the sitemap and
+    // then refused by a meta tag is a contradiction crawlers report as an error.
+    ...(await getCollection('research'))
+      .filter((entry) => !entry.data.draft)
+      .map((entry) => ({
+        loc: absoluteUrl(entry.data.path),
+        lastmod: entry.data.updated.toISOString().slice(0, 10),
+        changefreq: 'yearly',
+        priority: '0.9',
+      })),
   ];
 
   const urls = entries

@@ -32,6 +32,10 @@ export const INDEXABLE_PAGES = [
   { path: '/headers', changefreq: 'monthly', priority: '0.9' },
   { path: '/ip', changefreq: 'monthly', priority: '0.9' },
   { path: '/guides', changefreq: 'weekly', priority: '0.9' },
+  // Original research. Listed here rather than coming from the collection because the
+  // study is a hand-ported HTML document, not a markdown entry — the dataset page and the
+  // derivatives are added by the sitemap route straight from the collection.
+  { path: '/research/yc-email-spoofing-study', changefreq: 'yearly', priority: '1.0' },
   { path: '/api', changefreq: 'monthly', priority: '0.7' },
   { path: '/about', changefreq: 'monthly', priority: '0.6' },
 ] as const;
