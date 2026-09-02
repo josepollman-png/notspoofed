@@ -3,22 +3,36 @@
   "@graph": [
     {
       "@type": "Article",
-      "headline": "61.0% of Y Combinator companies can be email-spoofed",
-      "description": "A scan of all 6,122 Y Combinator company domains found 61.0% publish no DMARC record or a policy of p=none, leaving them open to email spoofing.",
+      "headline": "60.5% of Y Combinator companies can be email-spoofed",
+      "description": "A scan of all 6,157 Y Combinator company domains found 60.5% publish no DMARC record or a policy of p=none, leaving them open to email spoofing. First run August 14, 2026; re-run in full September 3, 2026.",
       "datePublished": "2026-08-14",
-      "author": { "@type": "Organization", "name": "notspoofed.com", "url": "https://notspoofed.com" },
-      "publisher": { "@type": "Organization", "name": "notspoofed.com", "url": "https://notspoofed.com" },
-      "mainEntityOfPage": "https://notspoofed.com/research/yc-email-spoofing-study"
+      "author": {
+        "@type": "Organization",
+        "name": "notspoofed.com",
+        "url": "https://notspoofed.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "notspoofed.com",
+        "url": "https://notspoofed.com"
+      },
+      "mainEntityOfPage": "https://notspoofed.com/research/yc-email-spoofing-study",
+      "dateModified": "2026-09-03"
     },
     {
       "@type": "Dataset",
-      "name": "YC company DMARC posture, August 2026",
-      "description": "DMARC policy, SPF presence and MX status for 6,122 unique Y Combinator company domains, with batch and industry labels.",
-      "creator": { "@type": "Organization", "name": "notspoofed.com" },
+      "name": "YC company DMARC posture, August and September 2026",
+      "description": "DMARC policy, SPF presence and MX status for 6,157 unique Y Combinator company domains, with batch and industry labels. Two full runs, August 14 and September 3, 2026, plus the list of every domain whose verdict changed between them.",
+      "creator": {
+        "@type": "Organization",
+        "name": "notspoofed.com"
+      },
       "datePublished": "2026-08-14",
       "license": "https://creativecommons.org/licenses/by/4.0/",
       "measurementTechnique": "Passive public DNS resolution of _dmarc TXT, SPF TXT and MX records",
-      "url": "https://notspoofed.com/research/yc-email-spoofing-study"
+      "url": "https://notspoofed.com/research/yc-email-spoofing-study",
+      "dateModified": "2026-09-03",
+      "temporalCoverage": "2026-08-14/2026-09-03"
     },
     {
       "@type": "FAQPage",
@@ -26,17 +40,34 @@
         {
           "@type": "Question",
           "name": "What makes a domain spoofable?",
-          "acceptedAnswer": { "@type": "Answer", "text": "A domain is spoofable if it publishes no DMARC record, or a DMARC policy of p=none. Both cases mean a forged message showing the domain's exact From address will still be delivered. Protection begins at p=quarantine and is complete at p=reject." }
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A domain is spoofable if it publishes no DMARC record, or a DMARC policy of p=none. Both cases mean a forged message showing the domain's exact From address will still be delivered. Protection begins at p=quarantine and is complete at p=reject."
+          }
         },
         {
           "@type": "Question",
           "name": "Does having SPF stop email spoofing?",
-          "acceptedAnswer": { "@type": "Answer", "text": "No. SPF validates the hidden envelope sender, not the From header a recipient sees. In this study 73.1% of spoofable domains published a valid SPF record. Without a DMARC policy at enforcement, SPF alone does not stop From-header spoofing." }
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. SPF validates the hidden envelope sender, not the From header a recipient sees. In this study 73.1% of spoofable domains published a valid SPF record. Without a DMARC policy at enforcement, SPF alone does not stop From-header spoofing."
+          }
         },
         {
           "@type": "Question",
           "name": "How do I check whether my own domain can be spoofed?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Enter your domain at notspoofed.com for a free check of your SPF, DKIM and DMARC records, or run dig +short TXT _dmarc.yourdomain.com and look at the p= value." }
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Enter your domain at notspoofed.com for a free check of your SPF, DKIM and DMARC records, or run dig +short TXT _dmarc.yourdomain.com and look at the p= value."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How quickly are companies moving to DMARC enforcement?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Slowly. Between a scan on August 14, 2026 and a full re-scan on September 3, 2026, 56 of 5,959 Y Combinator company domains moved to p=quarantine or p=reject and 16 moved the other way, so the spoofable share of that stable cohort fell from 60.9% to 60.2%. Companies newly added to the directory in the same period were 75.6% spoofable."
+          }
         }
       ]
     }

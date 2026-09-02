@@ -22,6 +22,7 @@ const schema = {
       headline: "SPF vs DMARC: Why SPF Alone Doesn't Stop Email Spoofing",
       description: entry.data.description,
       datePublished: '2026-08-14',
+      dateModified: '2026-09-03',
       author: { '@type': 'Organization', name: 'notspoofed.com', url: absoluteUrl('/') },
       publisher: { '@type': 'Organization', name: 'notspoofed.com', url: absoluteUrl('/') },
       mainEntityOfPage: URL_,
@@ -35,7 +36,7 @@ const schema = {
           name: 'Is SPF enough to stop spoofing?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'No. SPF answers only whether a server is allowed to send mail for the envelope sender’s domain, and never looks at the From: header your recipient sees. An attacker can pass SPF on a domain they control while displaying your address. In a scan of 6,122 domains, 73.1% of the spoofable ones already published a valid SPF record.',
+            text: 'No. SPF answers only whether a server is allowed to send mail for the envelope sender’s domain, and never looks at the From: header your recipient sees. An attacker can pass SPF on a domain they control while displaying your address. In a scan of 6,157 domains, 73.1% of the spoofable ones already published a valid SPF record.',
           },
         },
         {

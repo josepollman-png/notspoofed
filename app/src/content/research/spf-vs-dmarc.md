@@ -1,15 +1,15 @@
 ---
 title: "SPF vs DMARC: Why SPF Alone Doesn't Stop Email Spoofing"
 titleTag: "SPF vs DMARC: Why SPF Alone Doesn't Stop Spoofing (With Data)"
-description: "SPF checks the envelope sender, not the From address your recipients see. We scanned 6,122 domains: 73.1% of spoofable ones already had SPF. Here's the gap and how to close it."
+description: "SPF checks the envelope sender, not the From address your recipients see. We scanned 6,157 domains: 73.1% of spoofable ones already had SPF. Here's the gap and how to close it."
 path: "/spf-vs-dmarc"
 published: 2026-08-14
-updated: 2026-08-14
+updated: 2026-09-03
 draft: true
 ---
 If you've published an SPF record, you've done something real — but you probably haven't stopped anyone from spoofing your domain.
 
-We scanned 6,122 company domains in August 2026 and found that **73.1% of the domains that can be spoofed already publish a valid SPF record**. These aren't teams that ignored email security. They're teams that did the step that feels like the fix and stopped there.
+We scanned 6,157 company domains in September 2026 and found that **73.1% of the domains that can be spoofed already publish a valid SPF record** — the same share as when we first ran the scan in August. These aren't teams that ignored email security. They're teams that did the step that feels like the fix and stopped there.
 
 Here's why that gap exists.
 
@@ -67,7 +67,7 @@ v=DMARC1; p=reject; rua=mailto:dmarc@yourdomain.com
 
 ## The trap: p=none is not protection
 
-This is where most of the exposure in our scan actually sits. **1,923 of the 6,013 domains we classified — 32.0% — publish DMARC at `p=none`.**
+This is where most of the exposure in our scan actually sits. **1,924 of the 6,049 domains we classified — 31.8% — publish DMARC at `p=none`.**
 
 `p=none` means "monitor only." Alignment is checked, failures are reported to you, and the forged message is **delivered to your customer anyway**. From an attacker's perspective a `p=none` domain is exactly as spoofable as one with no DMARC record at all.
 
@@ -108,6 +108,6 @@ Step 5 is where protection begins. Based on our data, that's the step most compa
 
 ---
 
-**Related:** [DMARC adoption statistics 2026](/dmarc-adoption-statistics) · [What p=none actually means](/guides/dmarc-p-none/) · [The full 6,122-domain study](/research/yc-email-spoofing-study)
+**Related:** [DMARC adoption statistics 2026](/dmarc-adoption-statistics) · [What p=none actually means](/guides/dmarc-p-none/) · [The full 6,157-domain study](/research/yc-email-spoofing-study)
 
 **Check your domain free:** [notspoofed.com](https://notspoofed.com)

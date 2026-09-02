@@ -23,6 +23,7 @@ const schema = {
       headline: 'DMARC Adoption Statistics (2026)',
       description: entry.data.description,
       datePublished: '2026-08-14',
+      dateModified: '2026-09-03',
       author: { '@type': 'Organization', name: 'notspoofed.com', url: absoluteUrl('/') },
       publisher: { '@type': 'Organization', name: 'notspoofed.com', url: absoluteUrl('/') },
       mainEntityOfPage: URL_,
@@ -31,20 +32,21 @@ const schema = {
     {
       '@type': 'Dataset',
       '@id': absoluteUrl('/research/yc-dmarc-dataset#dataset'),
-      name: 'DMARC posture of 6,122 Y Combinator companies',
+      name: 'DMARC posture of 6,157 Y Combinator companies',
       description:
-        'DMARC policy, SPF presence and MX status for 6,122 unique Y Combinator company domains, with batch and industry labels.',
+        'DMARC policy, SPF presence and MX status for 6,157 unique Y Combinator company domains, with batch and industry labels.',
       url: absoluteUrl('/research/yc-dmarc-dataset'),
       license: 'https://creativecommons.org/licenses/by/4.0/',
       creator: { '@type': 'Organization', name: 'notspoofed.com', url: absoluteUrl('/') },
       datePublished: '2026-08-14',
-      temporalCoverage: '2026-08-14',
+      dateModified: '2026-09-03',
+      temporalCoverage: '2026-08-14/2026-09-03',
       measurementTechnique:
         'Passive public DNS resolution of _dmarc TXT, SPF TXT and MX records',
       distribution: {
         '@type': 'DataDownload',
         encodingFormat: 'text/csv',
-        contentUrl: absoluteUrl('/data/yc-dmarc-2026-08.csv'),
+        contentUrl: absoluteUrl('/data/yc-dmarc-2026-09.csv'),
       },
     },
     {
@@ -55,7 +57,7 @@ const schema = {
           name: 'What percentage of companies use DMARC?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'In an August 2026 scan of 6,122 Y Combinator company domains, 29.0% published no DMARC record at all. Publishing one is not the same as being protected: a further 32.0% were at p=none, which reports forged mail but still delivers it. Only 39.0% were at enforcement — p=quarantine or p=reject.',
+            text: 'In a September 2026 scan of 6,157 Y Combinator company domains, 28.6% published no DMARC record at all. Publishing one is not the same as being protected: a further 31.8% were at p=none, which reports forged mail but still delivers it. Only 39.5% were at enforcement — p=quarantine or p=reject.',
           },
         },
         {
@@ -63,7 +65,7 @@ const schema = {
           name: 'What is a good DMARC adoption rate?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Adoption is the wrong measure — enforcement is the one that matters. A domain at p=none has adopted DMARC and is still fully spoofable. Against this benchmark, 39.0% of companies scanned were at p=quarantine or p=reject, and 16.7% at p=reject.',
+            text: 'Adoption is the wrong measure — enforcement is the one that matters. A domain at p=none has adopted DMARC and is still fully spoofable. Against this benchmark, 39.5% of companies scanned were at p=quarantine or p=reject, and 17.1% at p=reject.',
           },
         },
         {
@@ -71,7 +73,7 @@ const schema = {
           name: 'How many companies use p=reject?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: '16.7% — 1,004 of the 6,013 domains conclusively classified in the August 2026 scan. p=reject is the only policy that fully stops a forged message showing your exact From: address.',
+            text: '17.1% — 1,034 of the 6,049 domains conclusively classified in the September 2026 scan. p=reject is the only policy that fully stops a forged message showing your exact From: address.',
           },
         },
       ],

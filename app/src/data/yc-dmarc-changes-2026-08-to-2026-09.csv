@@ -1,0 +1,73 @@
+name,batch,domain,old_policy,new_policy,old_verdict,new_verdict
+Abhi,Summer 2021,abhi.com.pk,quarantine,none,PROTECTED,SPOOFABLE
+Alkera AI,Summer 2026,alkera.ai,none,quarantine,SPOOFABLE,PROTECTED
+Allure Systems,Winter 2019,alluresystems.com,quarantine,no-dmarc,PROTECTED,SPOOFABLE
+Atomic,Summer 2020,atomicvest.com,quarantine,none,PROTECTED,SPOOFABLE
+Audobox,Summer 2013,audobox.com,no-dmarc,reject,SPOOFABLE,PROTECTED
+Bloom,Spring 2025,bloom.diy,reject,none,PROTECTED,SPOOFABLE
+Boost Biomes,Summer 2019,boostbiomes.com,quarantine,no-dmarc,PROTECTED,SPOOFABLE
+Cerebrium,Winter 2022,cerebrium.ai,none,reject,SPOOFABLE,PROTECTED
+Chromie,Summer 2026,chromie.dev,quarantine,none,PROTECTED,SPOOFABLE
+Chronicle Labs,Spring 2026,chronicle-labs.com,none,reject,SPOOFABLE,PROTECTED
+Compra Rápida,Winter 2022,comprarapida.co,none,quarantine,SPOOFABLE,PROTECTED
+Conifer,Summer 2026,conifer.build,none,quarantine,SPOOFABLE,PROTECTED
+Dench.com,Summer 2024,dench.com,quarantine,none,PROTECTED,SPOOFABLE
+Dojah Inc,Winter 2022,dojah.io,none,reject,SPOOFABLE,PROTECTED
+Duranium,Summer 2025,duranium.co,no-dmarc,reject,SPOOFABLE,PROTECTED
+Elyra,Spring 2026,elyrasystems.com,quarantine,none,PROTECTED,SPOOFABLE
+Emdash,Winter 2026,emdash.com,no-dmarc,quarantine,SPOOFABLE,PROTECTED
+Estoca,Winter 2021,estoca.com.br,none,quarantine,SPOOFABLE,PROTECTED
+Exosat,Summer 2026,exosat.com,no-dmarc,quarantine,SPOOFABLE,PROTECTED
+Expanse,Spring 2026,expanse.sh,none,quarantine,SPOOFABLE,PROTECTED
+Florin,Summer 2026,florin.inc,none,quarantine,SPOOFABLE,PROTECTED
+Freestyle,Fall 2024,freestyle.ai,none,quarantine,SPOOFABLE,PROTECTED
+Dayjob,Spring 2026,getdayjob.ai,none,quarantine,SPOOFABLE,PROTECTED
+Rhythmm,Winter 2018,getrhythmm.com,no-dmarc,reject,SPOOFABLE,PROTECTED
+Glassjar,Winter 2015,glassjar.co,no-dmarc,reject,SPOOFABLE,PROTECTED
+Graft Concepts,Summer 2013,graftconcepts.com,no-dmarc,reject,SPOOFABLE,PROTECTED
+Gutgutgoose,Summer 2026,gutgutgoose.com,none,quarantine,SPOOFABLE,PROTECTED
+Hellosaurus,Summer 2020,hellosaur.us,no-dmarc,reject,SPOOFABLE,PROTECTED
+Hemlock,Fall 2026,hemlock.info,none,quarantine,SPOOFABLE,PROTECTED
+HeyClicky,Spring 2026,heyclicky.com,none,quarantine,SPOOFABLE,PROTECTED
+Imagine AI,Fall 2025,imagineai.me,none,quarantine,SPOOFABLE,PROTECTED
+Indexical,Winter 2023,indexical.dev,no-dmarc,reject,SPOOFABLE,PROTECTED
+Instaplay,Summer 2026,instaplay.ai,no-dmarc,quarantine,SPOOFABLE,PROTECTED
+ion design,Winter 2024,ion.design,quarantine,none,PROTECTED,SPOOFABLE
+Keystroke,Winter 2024,keystroke.ai,none,reject,SPOOFABLE,PROTECTED
+Knowlify,Summer 2025,knowlify.com,none,quarantine,SPOOFABLE,PROTECTED
+Labric,Spring 2025,labric.co,none,quarantine,SPOOFABLE,PROTECTED
+Marft,Winter 2012,marft.com,no-dmarc,quarantine,SPOOFABLE,PROTECTED
+Martini,Winter 2026,martini.film,none,quarantine,SPOOFABLE,PROTECTED
+Minro,Fall 2025,minro.com,quarantine,none,PROTECTED,SPOOFABLE
+MinusX,Summer 2024,minusx.ai,none,quarantine,SPOOFABLE,PROTECTED
+Mundo AI,Winter 2025,mundoai.world,none,quarantine,SPOOFABLE,PROTECTED
+Nautilus,Summer 2025,nautilus.co,none,reject,SPOOFABLE,PROTECTED
+OutSail Technologies,Winter 2023,outsailtech.com,quarantine,no-dmarc,PROTECTED,SPOOFABLE
+Preseen,Summer 2025,preseen.com,none,quarantine,SPOOFABLE,PROTECTED
+Propexo,Winter 2023,propexo.com,reject,none,PROTECTED,SPOOFABLE
+Ready Education,Summer 2016,readyeducation.com,none,quarantine,SPOOFABLE,PROTECTED
+Rocketrip,Winter 2014,rocketrip.com,reject,none,PROTECTED,SPOOFABLE
+SalaryBook,Summer 2021,salarybook.co.in,quarantine,none,PROTECTED,SPOOFABLE
+Scalar Field,Spring 2025,scalarfield.io,none,quarantine,SPOOFABLE,PROTECTED
+Serif Health,Winter 2022,serifhealth.com,none,quarantine,SPOOFABLE,PROTECTED
+SigmaMind AI,Summer 2022,sigmamind.ai,none,quarantine,SPOOFABLE,PROTECTED
+Skyvern,Summer 2023,skyvern.com,none,quarantine,SPOOFABLE,PROTECTED
+Spott,Winter 2025,spott.io,none,quarantine,SPOOFABLE,PROTECTED
+Superset,Spring 2026,superset.sh,none,quarantine,SPOOFABLE,PROTECTED
+The Supplant Company,Summer 2018,supplant.com,no-dmarc,reject,SPOOFABLE,PROTECTED
+Sureform,Spring 2025,sureformhq.com,none,quarantine,SPOOFABLE,PROTECTED
+SensorSurf,Winter 2023,technician.dev,no-dmarc,reject,SPOOFABLE,PROTECTED
+The Mercer Club,Winter 2020,themercerclubnyc.com,no-dmarc,reject,SPOOFABLE,PROTECTED
+TomoGuides,Summer 2012,tomoguides.com,no-dmarc,reject,SPOOFABLE,PROTECTED
+Trexo Robotics,Winter 2019,trexorobotics.com,none,reject,SPOOFABLE,PROTECTED
+trii,Summer 2021,trii.co,quarantine,none,PROTECTED,SPOOFABLE
+Beluga,Spring 2025,trybeluga.ai,none,quarantine,SPOOFABLE,PROTECTED
+CarSignal,Summer 2026,trycarsignal.com,none,quarantine,SPOOFABLE,PROTECTED
+Interlock,Winter 2023,tryinterlock.com,no-dmarc,reject,SPOOFABLE,PROTECTED
+Derya,Summer 2026,usederya.com,no-dmarc,quarantine,SPOOFABLE,PROTECTED
+Prox,Fall 2025,useprox.com,none,quarantine,SPOOFABLE,PROTECTED
+Verdict Machine,Summer 2026,verdictmachine.com,no-dmarc,quarantine,SPOOFABLE,PROTECTED
+Weave,Winter 2025,weaveos.com,no-dmarc,reject,SPOOFABLE,PROTECTED
+TAI,Winter 2022,withtai.com,no-dmarc,reject,SPOOFABLE,PROTECTED
+ZiffyHomes,Summer 2018,ziffyhomes.com,no-dmarc,quarantine,SPOOFABLE,PROTECTED
+Zuni,Summer 2024,zuni.app,quarantine,none,PROTECTED,SPOOFABLE

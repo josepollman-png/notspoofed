@@ -6,7 +6,9 @@ import { absoluteUrl } from '../../lib/site.js';
 const entry = (await getEntry('research', 'yc-dmarc-dataset'))!;
 const { Content } = await render(entry);
 
-const CSV = absoluteUrl('/data/yc-dmarc-2026-08.csv');
+const CSV = absoluteUrl('/data/yc-dmarc-2026-09.csv');
+const CSV_AUG = absoluteUrl('/data/yc-dmarc-2026-08.csv');
+const CHANGES = absoluteUrl('/data/yc-dmarc-changes-2026-08-to-2026-09.csv');
 const STUDY = absoluteUrl('/research/yc-email-spoofing-study');
 
 /**
@@ -16,7 +18,7 @@ const STUDY = absoluteUrl('/research/yc-email-spoofing-study');
  * Search and by assistants that will not cite prose. Every field here is checkable
  * against the file it points at.
  *
- * `contentSize` is deliberately absent: the page states "~576 KB" and the file is 587,521
+ * `contentSize` is deliberately absent: the page states "~577 KB" and the file is 591,107
  * bytes, so any value written here either contradicts the page or restates an
  * approximation as a fact. Omitting is better than publishing a second, different number.
  */
@@ -24,9 +26,9 @@ const schema = {
   '@context': 'https://schema.org',
   '@type': 'Dataset',
   '@id': absoluteUrl('/research/yc-dmarc-dataset#dataset'),
-  name: 'DMARC posture of 6,122 Y Combinator companies',
+  name: 'DMARC posture of 6,157 Y Combinator companies',
   description:
-    'DMARC policy, SPF presence and MX status for 6,122 unique Y Combinator company domains, with batch and industry labels. Collected by passive public DNS resolution in August 2026.',
+    'DMARC policy, SPF presence and MX status for 6,157 unique Y Combinator company domains, with batch and industry labels. Collected by passive public DNS resolution in two full runs, August 14 and September 3, 2026, with the list of every domain whose verdict changed between them.',
   url: absoluteUrl('/research/yc-dmarc-dataset'),
   identifier: absoluteUrl('/research/yc-dmarc-dataset'),
   license: 'https://creativecommons.org/licenses/by/4.0/',
@@ -42,7 +44,8 @@ const schema = {
     url: absoluteUrl('/'),
   },
   datePublished: '2026-08-14',
-  temporalCoverage: '2026-08-14',
+  dateModified: '2026-09-03',
+  temporalCoverage: '2026-08-14/2026-09-03',
   measurementTechnique:
     'Passive public DNS resolution of _dmarc TXT, SPF TXT and MX records',
   // The CSV's own column names, so a consumer can tell what is in the file without
@@ -65,17 +68,38 @@ const schema = {
   distribution: [
     {
       '@type': 'DataDownload',
-      name: 'yc-dmarc-2026-08.csv',
-      description: 'One row per unique company domain. Filter to included=yes to reproduce the published figures.',
+      name: 'yc-dmarc-2026-09.csv',
+      description: 'September 3, 2026 run. One row per unique company domain. Filter to included=yes to reproduce the published figures.',
       encodingFormat: 'text/csv',
       contentUrl: CSV,
     },
     {
       '@type': 'DataDownload',
       name: 'data-quality-report.txt',
-      description: 'Audit trail: every row excluded, repaired or re-resolved, itemised by domain.',
+      description: 'Audit trail for the September run: every row excluded, repaired, re-resolved or hand-corrected, itemised by domain.',
       encodingFormat: 'text/plain',
       contentUrl: absoluteUrl('/data/yc-dmarc-data-quality-report.txt'),
+    },
+    {
+      '@type': 'DataDownload',
+      name: 'yc-dmarc-changes-2026-08-to-2026-09.csv',
+      description: 'Every domain whose verdict changed between the August and September runs, with old and new policy.',
+      encodingFormat: 'text/csv',
+      contentUrl: CHANGES,
+    },
+    {
+      '@type': 'DataDownload',
+      name: 'yc-dmarc-2026-08.csv',
+      description: 'August 14, 2026 run, kept unchanged for citations.',
+      encodingFormat: 'text/csv',
+      contentUrl: CSV_AUG,
+    },
+    {
+      '@type': 'DataDownload',
+      name: 'yc-dmarc-2026-08-data-quality-report.txt',
+      description: 'Audit trail for the August run.',
+      encodingFormat: 'text/plain',
+      contentUrl: absoluteUrl('/data/yc-dmarc-2026-08-data-quality-report.txt'),
     },
   ],
   isBasedOn: STUDY,

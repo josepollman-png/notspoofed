@@ -5,7 +5,9 @@ import type { APIRoute } from 'astro';
 import csv from '../../data/yc-dmarc-2026-08.csv?raw';
 
 /**
- * The dataset behind /research/yc-email-spoofing-study, released under CC BY 4.0.
+ * The August 14, 2026 run of the dataset behind /research/yc-email-spoofing-study,
+ * released under CC BY 4.0. Superseded by yc-dmarc-2026-09.csv for the page's figures, and
+ * kept published unchanged because it is cited.
  *
  * This is the corrected file, not the raw scan. The scan's own output over-reports the
  * headline figure by roughly a point, because a DNS timeout and a genuine absence of a
