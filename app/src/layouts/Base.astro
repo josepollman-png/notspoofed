@@ -50,6 +50,10 @@ const imageUrl = absoluteUrl(image);
 
     {canonical && <link rel="canonical" href={canonical} />}
     {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {/* Explicit rather than relying on the defaults: Google and Bing both honour these,
+        and answer engines that quote a page truncate at max-snippet when one is set. -1
+        says the whole page may be quoted, which is the point of publishing it. */}
+    {!noindex && <meta name="robots" content="max-snippet:-1, max-image-preview:large" />}
 
     {/* This tool gets pasted into Slack threads and forum replies. Without these a
         shared link renders as bare text and the free distribution is wasted. */}
@@ -74,6 +78,8 @@ const imageUrl = absoluteUrl(image);
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    {/* Per-page head additions: a guide advertises its markdown twin here. */}
+    <slot name="head" />
     <style is:global>
       :root {
         --bg: #fbfbfa;

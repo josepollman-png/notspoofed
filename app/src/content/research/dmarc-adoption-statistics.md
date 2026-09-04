@@ -1,11 +1,11 @@
 ---
 title: "DMARC Adoption Statistics (2026)"
 titleTag: "DMARC Adoption Statistics 2026: 40 Numbers From a 6,157-Domain Scan"
-description: "Current DMARC adoption statistics from an original scan of 6,157 company domains, run twice — enforcement rates, p=none share, SPF overlap, breakdowns by industry and company age, and how much moved in three weeks. Free to cite."
+description: "DMARC adoption statistics from a 6,157-domain scan run twice in 2026: enforcement rates, p=none share, SPF overlap, by industry and company age. Free to cite."
 path: "/dmarc-adoption-statistics"
 published: 2026-08-14
 updated: 2026-09-03
-draft: true
+draft: false
 ---
 Most DMARC statistics in circulation are either vendor-reported or several years old. These come from a scan we ran on **6,157 Y Combinator company domains on September 3, 2026**, reading each domain's public DNS records directly — and from the same scan run three weeks earlier, which is what lets us say how fast the numbers move. Every figure below is free to cite with a link to [notspoofed.com](https://notspoofed.com).
 

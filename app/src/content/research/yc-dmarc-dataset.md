@@ -1,7 +1,7 @@
 ---
 title: "Dataset: DMARC Posture of 6,157 Y Combinator Companies"
 titleTag: "Dataset: DMARC Records of 6,157 YC Companies, Two Runs (CSV, CC BY 4.0)"
-description: "Free CSV dataset — DMARC policy, SPF presence and MX status for 6,157 Y Combinator company domains, scanned in full in August and again in September 2026. Open data, cite with attribution."
+description: "Free CSV: DMARC policy, SPF and MX status for 6,157 Y Combinator company domains, scanned in August and September 2026. CC BY 4.0, cite with attribution."
 path: "/research/yc-dmarc-dataset"
 published: 2026-08-14
 updated: 2026-09-03

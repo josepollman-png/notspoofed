@@ -1,6 +1,6 @@
 ---
 title: "Email authentication for Shopify"
-description: "If your store email shows as store+123@shopifyemail.com, Shopify rewrote it because your domain is not authenticated. What to publish — and the DMARC tag that breaks it."
+description: "Store mail showing as store+123@shopifyemail.com means Shopify rewrote it: your domain isn't authenticated. What to publish, and the DMARC tag that breaks it."
 question: "Why does my Shopify email come from shopifyemail.com?"
 category: "Providers"
 published: 2026-08-14

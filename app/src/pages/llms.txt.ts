@@ -65,6 +65,9 @@ const link = (path: string, label: string, blurb?: string) =>
 
 export const GET: APIRoute = async () => {
   const guides = (await getCollection('guides')).sort((a, b) => a.data.order - b.data.order);
+  // Drafts send noindex and are kept out of the sitemap; listing them here would be the
+  // same contradiction.
+  const research = (await getCollection('research')).filter((e) => !e.data.draft);
 
   const body = [
     '# notspoofed.com',
@@ -110,11 +113,7 @@ export const GET: APIRoute = async () => {
       '60.5% of Y Combinator companies can be email-spoofed',
       'a scan of all 6,157 YC company domains, run in full on August 14 and again on September 3, 2026; the spoofable rate is flat across 15 years of batches, and only 56 companies moved to enforcement between the runs',
     ),
-    link(
-      '/research/yc-dmarc-dataset',
-      'The dataset behind it',
-      'CSV under CC BY 4.0, 6,157 rows per run, with the full audit trail of every row excluded, repaired or re-resolved, and the list of every domain whose verdict changed between runs',
-    ),
+    ...research.map((e) => link(e.data.path, e.data.title, e.data.description)),
     link('/data/yc-dmarc-2026-09.csv', 'Direct CSV download, September 2026 run'),
     link('/data/yc-dmarc-2026-08.csv', 'August 2026 run'),
     link('/data/yc-dmarc-changes-2026-08-to-2026-09.csv', 'Domains whose verdict changed between runs'),
@@ -124,9 +123,16 @@ export const GET: APIRoute = async () => {
     ...guides.map((g) => link(`/guides/${g.id}/`, g.data.title, g.data.description)),
     ...TOOL_GUIDES.map(([path, label]) => link(path, label)),
     '',
+    '## For agents',
+    '',
+    link('/llms-full.txt', 'Full text of every guide and research page', 'one markdown file'),
+    'Every guide is also served as markdown at its own URL with a .md suffix, e.g.',
+    absoluteUrl('/guides/spf-too-many-dns-lookups.md') + ' — and advertised from the HTML page',
+    'with <link rel="alternate" type="text/markdown">.',
+    '',
     '## About',
     '',
-    link('/about', 'About', 'what is recorded and what is not, stated per data type'),
+    link('/about', 'About', 'who runs it, what is recorded and what is not, stated per data type'),
     link('/privacy', 'Privacy for the tools section', 'which differs from the checker and says so'),
     '',
     // The distinction matters and gets flattened by summarisers otherwise: the checker is

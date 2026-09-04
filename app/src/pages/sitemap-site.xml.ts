@@ -14,16 +14,23 @@ import { absoluteUrl, INDEXABLE_PAGES } from '../lib/site.js';
  * that must never be crawled. Listing only what we want indexed is the safer default.
  */
 export const GET: APIRoute = async () => {
-  const today = new Date().toISOString().slice(0, 10);
+  const guides = await getCollection('guides');
+  const research = (await getCollection('research')).filter((entry) => !entry.data.draft);
+  // The newest content date on the site: what the pages that list the collection last
+  // changed, as far as a crawler should care.
+  const newest = [...guides, ...research]
+    .map((e) => e.data.updated.toISOString().slice(0, 10))
+    .sort()
+    .at(-1)!;
 
   const entries = [
     ...INDEXABLE_PAGES.map((p) => ({
       loc: absoluteUrl(p.path),
-      lastmod: today,
+      lastmod: p.lastmod === 'collection' ? newest : p.lastmod,
       changefreq: p.changefreq as string,
       priority: p.priority as string,
     })),
-    ...(await getCollection('guides')).map((guide) => ({
+    ...guides.map((guide) => ({
       loc: absoluteUrl(`/guides/${guide.id}/`),
       // The guide's own updated date, not today's — claiming everything changed
       // daily is exactly the signal that gets a sitemap's dates ignored.
@@ -34,8 +41,7 @@ export const GET: APIRoute = async () => {
     // Research pages carry their own canonical path — they do not share a prefix. Drafts
     // are filtered out here as well as sending noindex: a page listed in the sitemap and
     // then refused by a meta tag is a contradiction crawlers report as an error.
-    ...(await getCollection('research'))
-      .filter((entry) => !entry.data.draft)
+    ...research
       .map((entry) => ({
         loc: absoluteUrl(entry.data.path),
         lastmod: entry.data.updated.toISOString().slice(0, 10),

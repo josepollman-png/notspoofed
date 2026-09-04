@@ -1,6 +1,6 @@
 ---
 title: "Setting up DMARC on Google Workspace"
-description: "The steps, plus the three places Google's own instructions will cost you: a deprecated tag they still recommend, a report tag Gmail ignores, and the 48-hour wait."
+description: "The steps, plus the three places Google's own instructions cost you: a deprecated tag they still recommend, a report tag Gmail ignores, and the 48-hour wait."
 question: "How do I set up DMARC for Google Workspace?"
 category: "Providers"
 published: 2026-08-14

@@ -3,8 +3,26 @@ import Base from '../layouts/Base.astro';
 import { COMMON_SELECTORS } from '../lib/dkim/selectors.js';
 import { BLOCKLISTS } from '../lib/ip/blocklists.js';
 
-// If you want your name on this, add it to the "Who runs it" section below.
+import { absoluteUrl } from '../lib/site.js';
+
 const contact = 'hello@notspoofed.com';
+
+/**
+ * The Person every guide and research page names as its author, with a stable @id so
+ * the references resolve to one node rather than a copy per page. Jose Pollman is the
+ * byline the site publishes under.
+ */
+const authorSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  '@id': absoluteUrl('/about#author'),
+  name: 'Jose Pollman',
+  url: absoluteUrl('/about#author'),
+  jobTitle: 'Builder and maintainer of notspoofed.com',
+  worksFor: { '@id': absoluteUrl('/#org') },
+  sameAs: ['https://github.com/josepollman-png'],
+  knowsAbout: ['SPF', 'DKIM', 'DMARC', 'email authentication', 'email deliverability', 'DNS'],
+};
 ---
 
 <Base
@@ -12,6 +30,8 @@ const contact = 'hello@notspoofed.com';
   description="Who runs notspoofed.com, what it does and does not check, how to report a wrong result, and what it records about you."
   canonicalPath="/about"
 >
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(authorSchema)} />
+
   <h1>About</h1>
   <p class="lede">
     A free set of email authentication tools, built because the existing free checkers
@@ -166,9 +186,9 @@ const contact = 'hello@notspoofed.com';
     actually reads X, here is the <code>dig</code> output”.
   </p>
 
-  <h2>Who runs it</h2>
+  <h2 id="author">Who runs it</h2>
   <p>
-    One person, independently, on a single server. It is not backed by a vendor and does
+    One person — Jose Pollman — independently, on a single server. It is not backed by a vendor and does
     not sell your results to one. There is no upsell in the findings: where a commercial
     product genuinely is the right answer — DMARC report monitoring, for instance — it
     says so plainly rather than steering you somewhere.

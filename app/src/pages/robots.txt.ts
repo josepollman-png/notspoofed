@@ -27,6 +27,11 @@ const DISALLOW = [
   // for the crawlers that ignore this file.
   'Disallow: /result/',
   'Allow: /',
+  // Content Signals (contentsignals.org): a machine-readable statement of what the
+  // crawled content may be used for. Not a standard every crawler reads, but the ones
+  // that do treat its absence as ambiguity. The site's position is unambiguous — cite
+  // it, feed it to a model, train on it — so it is stated in each group.
+  'Content-Signal: search=yes, ai-input=yes, ai-train=yes',
 ];
 
 /**

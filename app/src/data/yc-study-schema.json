@@ -7,9 +7,7 @@
       "description": "A scan of all 6,157 Y Combinator company domains found 60.5% publish no DMARC record or a policy of p=none, leaving them open to email spoofing. First run August 14, 2026; re-run in full September 3, 2026.",
       "datePublished": "2026-08-14",
       "author": {
-        "@type": "Organization",
-        "name": "notspoofed.com",
-        "url": "https://notspoofed.com"
+        "@id": "https://notspoofed.com/about#author"
       },
       "publisher": {
         "@type": "Organization",

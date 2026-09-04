@@ -1,11 +1,11 @@
 ---
 title: "SPF vs DMARC: Why SPF Alone Doesn't Stop Email Spoofing"
 titleTag: "SPF vs DMARC: Why SPF Alone Doesn't Stop Spoofing (With Data)"
-description: "SPF checks the envelope sender, not the From address your recipients see. We scanned 6,157 domains: 73.1% of spoofable ones already had SPF. Here's the gap and how to close it."
+description: "SPF checks the envelope sender, not the From address recipients see. In our 6,157-domain scan, 73.1% of spoofable domains had SPF. How to close the gap."
 path: "/spf-vs-dmarc"
 published: 2026-08-14
 updated: 2026-09-03
-draft: true
+draft: false
 ---
 If you've published an SPF record, you've done something real — but you probably haven't stopped anyone from spoofing your domain.
 

@@ -24,7 +24,7 @@ const schema = {
       description: entry.data.description,
       datePublished: '2026-08-14',
       dateModified: '2026-09-03',
-      author: { '@type': 'Organization', name: 'notspoofed.com', url: absoluteUrl('/') },
+      author: { '@id': absoluteUrl('/about#author') },
       publisher: { '@type': 'Organization', name: 'notspoofed.com', url: absoluteUrl('/') },
       mainEntityOfPage: URL_,
       isBasedOn: absoluteUrl('/research/yc-email-spoofing-study'),

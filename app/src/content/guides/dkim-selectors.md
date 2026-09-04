@@ -1,6 +1,6 @@
 ---
 title: "Finding your DKIM selector"
-description: "DKIM selectors cannot be listed from DNS. Why every checker is guessing, how to find yours for certain, and the trap that makes some tools report keys that do not exist."
+description: "DKIM selectors cannot be listed from DNS. Why every checker is guessing, how to find yours anyway, and the trap that makes tools report keys that don't exist."
 question: "How do I find my DKIM selector?"
 category: "DKIM"
 published: 2026-07-31

@@ -29,7 +29,15 @@ const articleSchema = {
   datePublished: guide.data.published.toISOString().slice(0, 10),
   dateModified: guide.data.updated.toISOString().slice(0, 10),
   mainEntityOfPage: { '@type': 'WebPage', '@id': absoluteUrl(path) },
+  // A named author and a publisher, both resolvable: an article nobody signs is the
+  // pattern search and answer engines have learned to discount, and /about is where
+  // the name is explained.
+  author: { '@id': absoluteUrl('/about#author') },
+  publisher: { '@id': absoluteUrl('/#org') },
+  inLanguage: 'en',
 };
+
+const markdownUrl = absoluteUrl(`/guides/${guide.id}.md`);
 
 const faqSchema = guide.data.faq && {
   '@context': 'https://schema.org',
@@ -51,6 +59,9 @@ const updated = guide.data.updated.toLocaleDateString('en-GB', {
   description={guide.data.description}
   canonicalPath={path}
 >
+  {/* The same guide as plain markdown, for agents that would rather not parse HTML. */}
+  <link slot="head" rel="alternate" type="text/markdown" href={markdownUrl} />
+
   {/* is:inline is explicit: these are JSON-LD data blocks, not code to be bundled.
       Without it Astro infers the same thing but warns on every build. */}
   <script type="application/ld+json" is:inline set:html={JSON.stringify(articleSchema)} />
@@ -62,7 +73,7 @@ const updated = guide.data.updated.toLocaleDateString('en-GB', {
 
   <article>
     <h1>{guide.data.title}</h1>
-    <p class="meta">Last checked {updated}</p>
+    <p class="meta">By <a href="/about#author">Jose Pollman</a> · Last checked {updated}</p>
     <Content />
   </article>
 
