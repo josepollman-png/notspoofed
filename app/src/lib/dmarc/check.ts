@@ -1,5 +1,6 @@
 import { getDomain } from 'tldts';
 import type { DnsBackend } from '../dns/resolver.js';
+import { lookupTxt, type TxtLookup } from '../dns/txt-lookup.js';
 
 /**
  * DMARC lookup, policy inheritance, and external destination verification.
@@ -59,6 +60,12 @@ export interface DmarcRecord {
   foundAt: string;
   /** True when the record came from the org domain rather than the queried name. */
   inherited: boolean;
+  /**
+   * The CNAME chain from `_dmarc.<foundAt>` to where the record really lives. Managed
+   * DMARC providers — Proofpoint, Valimail, dmarcian, Mimecast — host it this way, so
+   * this is usually the provider's name. Empty when the record is published directly.
+   */
+  cnameChain: string[];
   policy: Policy | null;
   subdomainPolicy: Policy | null;
   /** `np=` — policy for subdomains that do not exist at all (RFC 9989 §4.7). */
@@ -89,6 +96,14 @@ export interface DmarcResult {
   domain: string;
   orgDomain: string | null;
   found: boolean;
+  /**
+   * `unknown` when a lookup went unanswered (SERVFAIL, timeout) even after a retry.
+   * That is not the same as `absent`, and the report must not say "no DMARC record"
+   * for it: the record may well be there.
+   */
+  status: 'found' | 'absent' | 'unknown';
+  /** Every `_dmarc` name queried in the tree walk, nearest first, with what came back. */
+  lookups: TxtLookup[];
   record: DmarcRecord | null;
   /** More than one `_dmarc` TXT record — receivers treat this as no policy at all. */
   multipleRecords: boolean;
@@ -222,6 +237,7 @@ export function parseDmarcRecord(raw: string, foundAt: string, inherited: boolea
     raw,
     foundAt,
     inherited,
+    cnameChain: [],
     policy,
     subdomainPolicy,
     nonExistentPolicy,
@@ -319,28 +335,45 @@ export async function checkDmarc(dns: DnsBackend, domain: string): Promise<Dmarc
   // a question about who owns two names rather than about where a policy lives.
   const orgDomain = getDomain(domain);
 
-  const fetch = async (name: string): Promise<{ records: string[] }> => {
-    const answer = await dns.txt(`_dmarc.${name}`);
-    return { records: answer.values.filter((v) => /^v=DMARC1/i.test(v.trim())) };
-  };
+  const isDmarc = (v: string) => /^v=DMARC1/i.test(v);
 
   let records: string[] = [];
   let foundAt = domain;
+  let cnameChain: string[] = [];
+  const lookups: TxtLookup[] = [];
 
   // Nearest ancestor wins: the walk stops at the first name that answers, so a policy
-  // on an intermediate label is honoured instead of being stepped over.
+  // on an intermediate label is honoured instead of being stepped over. Every step
+  // follows CNAMEs, the organizational domain included.
+  //
+  // An unanswered lookup stops the walk too. Carrying on would report the parent's
+  // policy as inherited when the nearer name may publish its own — or, at the top,
+  // report "no record" on the strength of a SERVFAIL.
   for (const name of treeWalkNames(domain)) {
-    const found = (await fetch(name)).records;
-    if (found.length > 0) { records = found; foundAt = name; break; }
+    const lookup = await lookupTxt(dns, `_dmarc.${name}`, isDmarc);
+    lookups.push(lookup);
+    if (lookup.status === 'found') {
+      records = lookup.records; foundAt = name; cnameChain = lookup.cnameChain; break;
+    }
+    if (lookup.status === 'unknown') {
+      return {
+        domain, orgDomain, found: false, status: 'unknown', lookups,
+        record: null, multipleRecords: false, externalDestinations: [],
+      };
+    }
   }
 
   const inherited = foundAt !== domain;
 
   if (records.length === 0) {
-    return { domain, orgDomain, found: false, record: null, multipleRecords: false, externalDestinations: [] };
+    return {
+      domain, orgDomain, found: false, status: 'absent', lookups,
+      record: null, multipleRecords: false, externalDestinations: [],
+    };
   }
 
   const record = parseDmarcRecord(records[0]!, foundAt, inherited);
+  record.cnameChain = cnameChain;
 
   // np= outranks sp=, but only for a name that is not in the DNS. Probing costs up to
   // two queries, so it runs only where it can actually change the answer.
@@ -361,6 +394,8 @@ export async function checkDmarc(dns: DnsBackend, domain: string): Promise<Dmarc
     domain,
     orgDomain,
     found: true,
+    status: 'found',
+    lookups,
     record,
     multipleRecords: records.length > 1,
     externalDestinations,

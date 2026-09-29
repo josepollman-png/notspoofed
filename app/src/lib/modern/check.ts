@@ -1,6 +1,7 @@
 import { getDomain } from 'tldts';
 import { dohQuery, RR } from '../dns/doh.js';
 import type { DnsBackend, MxRecord } from '../dns/resolver.js';
+import { lookupTxt, type TxtLookup } from '../dns/txt-lookup.js';
 
 /**
  * The checks beyond SPF/DKIM/DMARC: MTA-STS, TLS-RPT, BIMI and DNSSEC.
@@ -31,6 +32,8 @@ export interface MtaStsPolicy {
 export interface MtaStsResult {
   /** The `_mta-sts` TXT record, if published. */
   record: string | null;
+  /** The lookup behind `record`. `status: 'unknown'` means "could not check", not "none". */
+  lookup: TxtLookup;
   id?: string;
   /** Policy file fetched from https://mta-sts.<domain>/.well-known/mta-sts.txt */
   policy: MtaStsPolicy | null;
@@ -135,11 +138,11 @@ async function fetchPolicy(
 
 export async function checkMtaSts(dns: DnsBackend, domain: string): Promise<MtaStsResult> {
   const errors: string[] = [];
-  const answer = await dns.txt(`_mta-sts.${domain}`);
-  const records = answer.values.filter((v) => /^v=STSv1/i.test(v.trim()));
+  const lookup = await lookupTxt(dns, `_mta-sts.${domain}`, (v) => /^v=STSv1/i.test(v));
+  const records = lookup.records;
 
   if (records.length === 0) {
-    return { record: null, policy: null, unmatchedMx: [], errors };
+    return { record: null, lookup, policy: null, unmatchedMx: [], errors };
   }
   if (records.length > 1) errors.push('more than one MTA-STS record published');
 
@@ -159,7 +162,7 @@ export async function checkMtaSts(dns: DnsBackend, domain: string): Promise<MtaS
       .filter((host) => !policy.mx.some((p) => mxMatches(p, host)));
   }
 
-  return { record, id, policy, policyError: error, unmatchedMx, errors };
+  return { record, lookup, id, policy, policyError: error, unmatchedMx, errors };
 }
 
 // ---------------------------------------------------------------------------
@@ -168,16 +171,17 @@ export async function checkMtaSts(dns: DnsBackend, domain: string): Promise<MtaS
 
 export interface TlsRptResult {
   record: string | null;
+  lookup: TxtLookup;
   rua: string[];
   errors: string[];
 }
 
 export async function checkTlsRpt(dns: DnsBackend, domain: string): Promise<TlsRptResult> {
-  const answer = await dns.txt(`_smtp._tls.${domain}`);
-  const records = answer.values.filter((v) => /^v=TLSRPTv1/i.test(v.trim()));
+  const lookup = await lookupTxt(dns, `_smtp._tls.${domain}`, (v) => /^v=TLSRPTv1/i.test(v));
+  const records = lookup.records;
   const errors: string[] = [];
 
-  if (records.length === 0) return { record: null, rua: [], errors };
+  if (records.length === 0) return { record: null, lookup, rua: [], errors };
   if (records.length > 1) errors.push('more than one TLS-RPT record published');
 
   const record = records[0]!;
@@ -189,7 +193,7 @@ export async function checkTlsRpt(dns: DnsBackend, domain: string): Promise<TlsR
     if (!/^(mailto:|https:)/i.test(uri)) errors.push(`rua entry "${uri}" must be a mailto: or https: URI`);
   }
 
-  return { record, rua, errors };
+  return { record, lookup, rua, errors };
 }
 
 // ---------------------------------------------------------------------------
@@ -198,6 +202,7 @@ export async function checkTlsRpt(dns: DnsBackend, domain: string): Promise<TlsR
 
 export interface BimiResult {
   record: string | null;
+  lookup: TxtLookup;
   /** Logo URL from `l=`. Never fetched — see note below. */
   logoUrl?: string;
   /** VMC certificate URL from `a=`. */
@@ -206,11 +211,11 @@ export interface BimiResult {
 }
 
 export async function checkBimi(dns: DnsBackend, domain: string): Promise<BimiResult> {
-  const answer = await dns.txt(`default._bimi.${domain}`);
-  const records = answer.values.filter((v) => /^v=BIMI1/i.test(v.trim()));
+  const lookup = await lookupTxt(dns, `default._bimi.${domain}`, (v) => /^v=BIMI1/i.test(v));
+  const records = lookup.records;
   const errors: string[] = [];
 
-  if (records.length === 0) return { record: null, errors };
+  if (records.length === 0) return { record: null, lookup, errors };
   if (records.length > 1) errors.push('more than one BIMI record published');
 
   const record = records[0]!;
@@ -230,7 +235,7 @@ export async function checkBimi(dns: DnsBackend, domain: string): Promise<BimiRe
 
   if (vmcUrl && !/^https:\/\//i.test(vmcUrl)) errors.push('the VMC certificate URL must be https');
 
-  return { record, logoUrl, vmcUrl, errors };
+  return { record, lookup, logoUrl, vmcUrl, errors };
 }
 
 // ---------------------------------------------------------------------------

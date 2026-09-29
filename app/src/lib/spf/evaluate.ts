@@ -1,4 +1,4 @@
-import type { DnsBackend } from '../dns/resolver.js';
+import type { DnsBackend, QueryError } from '../dns/resolver.js';
 import { QueryBudgetExceeded } from '../dns/resolver.js';
 import { isSpfRecord, parseSpf, type ParsedRecord, type Term } from './parse.js';
 
@@ -90,6 +90,11 @@ export interface SpfEvaluation {
   tree: SpfNode | null;
   truncated: boolean;
   /**
+   * The apex TXT lookup got no answer (SERVFAIL, timeout) even after a retry. `found`
+   * is then false for want of an answer, not because the domain publishes nothing.
+   */
+  lookupError: QueryError | null;
+  /**
    * The record is exactly `v=spf1 -all` — it authorises nobody and forbids everyone,
    * which is the correct, deliberate posture for a domain that sends no mail.
    * Without this distinction the report warns about missing DKIM on domains that are
@@ -107,6 +112,7 @@ interface State {
   ip6: Set<string>;
   macros: Term[];
   truncated: boolean;
+  lookupError: QueryError | null;
   options: EvaluateOptions;
 }
 
@@ -117,18 +123,23 @@ function problem(state: State, domain: string, code: string, message: string): v
 }
 
 /** Fetch the single SPF record for a name, reporting the RFC's error cases. */
+const TRANSIENT = new Set<QueryError>(['SERVFAIL', 'TIMEOUT', 'REFUSED', 'OTHER']);
+
 async function fetchSpf(
   state: State,
   domain: string,
-): Promise<{ record: string | null; error?: string }> {
-  const answer = await state.dns.txt(domain);
+): Promise<{ record: string | null; error?: string; dnsError?: QueryError }> {
+  let answer = await state.dns.txt(domain);
+  // One retry for a failure that is not an answer. The resolver keeps no cache of
+  // those, so this reaches the network again.
+  if (answer.error && TRANSIENT.has(answer.error)) answer = await state.dns.txt(domain);
 
   if (answer.void) {
     state.voids++;
     return { record: null, error: 'no SPF record published' };
   }
   if (answer.error) {
-    return { record: null, error: `DNS ${answer.error.toLowerCase()}` };
+    return { record: null, error: `DNS ${answer.error.toLowerCase()}`, dnsError: answer.error };
   }
 
   const spf = answer.values.filter(isSpfRecord);
@@ -157,13 +168,16 @@ async function walk(
   };
 
   const voidsBefore = state.voids;
-  const { record, error } = path.length === 0 && state.options.record !== undefined
-    ? { record: state.options.record, error: undefined }
+  const { record, error, dnsError } = path.length === 0 && state.options.record !== undefined
+    ? { record: state.options.record, error: undefined, dnsError: undefined }
     : await fetchSpf(state, domain);
   node.fetchVoids = state.voids - voidsBefore;
   if (error) {
     node.error = error;
-    problem(state, domain, error.startsWith('PermError') ? 'multiple-records' : 'no-record', error);
+    // A DNS failure is not "no record": the first is unknown, the second a fact.
+    const code = error.startsWith('PermError') ? 'multiple-records' : dnsError ? 'dns-error' : 'no-record';
+    problem(state, domain, code, error);
+    if (dnsError && path.length === 0) state.lookupError = dnsError;
   }
   if (!record) return node;
 
@@ -315,7 +329,7 @@ export async function evaluateSpf(
 ): Promise<SpfEvaluation> {
   const state: State = {
     dns, lookups: 0, voids: 0, problems: [],
-    ip4: new Set(), ip6: new Set(), macros: [], truncated: false, options,
+    ip4: new Set(), ip6: new Set(), macros: [], truncated: false, lookupError: null, options,
   };
 
   let tree: SpfNode | null = null;
@@ -337,6 +351,7 @@ export async function evaluateSpf(
 
   return {
     domain,
+    lookupError: state.lookupError,
     found: Boolean(tree?.record),
     record: tree?.record ?? null,
     lookupCount: state.lookups,

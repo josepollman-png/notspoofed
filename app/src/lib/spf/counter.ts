@@ -70,7 +70,7 @@ export interface CounterFlag {
   code:
     | 'ptr' | 'duplicate-include' | 'permissive-all' | 'no-all' | 'multiple-records'
     | 'string-too-long' | 'record-too-large' | 'void-limit' | 'loop' | 'macro'
-    | 'syntax' | 'no-record' | 'mx-fanout' | 'truncated';
+    | 'syntax' | 'no-record' | 'mx-fanout' | 'truncated' | 'dns-error';
   severity: 'error' | 'warning' | 'info';
   message: string;
 }
@@ -355,6 +355,9 @@ function findFlags(evaluation: SpfEvaluation, strings: string[], source: Counter
         if (p.domain !== evaluation.domain) {
           add({ code: 'no-record', severity: 'error', message: `${p.domain} is included but has no SPF record — the include is a PermError when a receiver reaches it.` });
         }
+        break;
+      case 'dns-error':
+        add({ code: 'dns-error', severity: 'warning', message: `${where(p.domain)} did not answer (${p.message}), so the tree below it is missing and the true count may be higher.` });
         break;
       case 'mx-fanout':
         add({ code: 'mx-fanout', severity: 'error', message: `${where(p.domain)}: ${p.message}` });

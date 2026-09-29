@@ -95,6 +95,8 @@ export const GET: APIRoute = async ({ request, url, clientAddress }) => {
         found: r.spf.found,
         record: r.spf.record,
         lookupCount: r.spf.lookupCount,
+        // Additive: whether the apex lookup got an answer at all.
+        lookupError: r.spf.lookupError,
         lookupLimit: 10,
         limitExceeded: r.spf.limitExceeded,
         voidCount: r.spf.voidCount,
@@ -120,6 +122,12 @@ export const GET: APIRoute = async ({ request, url, clientAddress }) => {
 
       dmarc: {
         found: r.dmarc.found,
+        // Additive. 'unknown' means the lookup got no answer — never read it as absent.
+        status: r.dmarc.status,
+        cnameChain: r.dmarc.record?.cnameChain ?? [],
+        lookups: r.dmarc.lookups.map((l) => ({
+          name: l.name, status: l.status, outcome: l.outcome, cnameChain: l.cnameChain,
+        })),
         record: r.dmarc.record?.raw ?? null,
         foundAt: r.dmarc.record?.foundAt ?? null,
         inherited: r.dmarc.record?.inherited ?? false,
@@ -147,9 +155,13 @@ export const GET: APIRoute = async ({ request, url, clientAddress }) => {
         policyReachable: Boolean(r.mtaSts.record) && !r.mtaSts.policyError,
         policyMx: r.mtaSts.policy?.mx ?? [],
         unmatchedMx: r.mtaSts.unmatchedMx,
+        lookupStatus: r.mtaSts.lookup.status,
       },
-      tlsRpt: { record: r.tlsRpt.record, rua: r.tlsRpt.rua },
-      bimi: { record: r.bimi.record, logoUrl: r.bimi.logoUrl ?? null, vmcUrl: r.bimi.vmcUrl ?? null },
+      tlsRpt: { record: r.tlsRpt.record, rua: r.tlsRpt.rua, lookupStatus: r.tlsRpt.lookup.status },
+      bimi: {
+        record: r.bimi.record, logoUrl: r.bimi.logoUrl ?? null, vmcUrl: r.bimi.vmcUrl ?? null,
+        lookupStatus: r.bimi.lookup.status,
+      },
       dnssec: r.dnssec.unknown ? null : r.dnssec.signed,
 
       mx: r.mx.map((m) => ({ priority: m.priority, exchange: m.exchange })),

@@ -152,6 +152,10 @@ export class DnsResolver implements DnsBackend {
       (values): Answer<T> => ({ values, void: values.length === 0 }),
       (err): Answer<T> => {
         const error = classify(err);
+        // A transient failure is not an answer about the name, so it is not kept: a
+        // caller that retries must reach the network again, not this cache. Caching a
+        // SERVFAIL turned one bad packet into "no DMARC record" for the whole check.
+        if (!isVoid(error)) this.#cache.delete(key);
         return { values: [], void: isVoid(error), error };
       },
     );

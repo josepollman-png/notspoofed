@@ -2,6 +2,7 @@ import type { DkimResult } from './dkim/check.js';
 import { UNGUESSABLE_PROVIDERS } from './dkim/selectors.js';
 import type { DmarcResult } from './dmarc/check.js';
 import type { MxRecord } from './dns/resolver.js';
+import { describeLookup, type TxtLookup } from './dns/txt-lookup.js';
 import type { BimiResult, DnssecResult, MtaStsResult, TlsRptResult } from './modern/check.js';
 import type { Finding, FindingId } from './findings.js';
 import { bySeverity } from './findings.js';
@@ -54,6 +55,21 @@ function isNonSending(input: CheckInput): boolean {
 
 function spfFindings({ domain, spf, flatten }: CheckInput): Finding[] {
   const out: Finding[] = [];
+
+  // No answer at the apex, even after a retry. Saying "no SPF record" here would be a
+  // claim the DNS never made.
+  if (spf.lookupError) {
+    out.push({
+      id: 'spf-lookup-failed',
+      severity: 'warning',
+      title: 'SPF could not be checked',
+      detail:
+        `The TXT lookup for ${domain} got no answer (${spf.lookupError}), after a retry. ` +
+        'That is a DNS failure, not evidence the record is missing — run the check again ' +
+        'in a minute.',
+    });
+    return out;
+  }
 
   if (!spf.found) {
     out.push({
@@ -198,6 +214,18 @@ function spfFindings({ domain, spf, flatten }: CheckInput): Finding[] {
   }
 
   for (const p of spf.problems) {
+    if (p.code === 'dns-error') {
+      out.push({
+        id: 'spf-lookup-failed',
+        severity: 'info',
+        title: `${p.domain} could not be checked`,
+        detail:
+          `The SPF record at ${p.domain} got no answer (${p.message}), after a retry, so ` +
+          'the lookup count below it is incomplete. Run the check again in a minute.',
+      });
+      continue;
+    }
+
     const map: Record<string, { id: FindingId; severity: Finding['severity']; title: string }> = {
       'multiple-records': { id: 'spf-multiple-records', severity: 'critical', title: 'More than one SPF record' },
       'void-limit': { id: 'spf-void-limit', severity: 'warning', title: 'Too many dead lookups in SPF' },
@@ -364,6 +392,22 @@ function dkimFindings(input: CheckInput): Finding[] {
 export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' | 'dmarc' | 'mx'>): Finding[] {
   const out: Finding[] = [];
 
+  // No answer is not "no record". Saying a domain has no DMARC when its lookup merely
+  // failed tells the owner of a p=reject domain that they are unprotected.
+  if (dmarc.status === 'unknown') {
+    const failed = dmarc.lookups[dmarc.lookups.length - 1];
+    out.push({
+      id: 'dmarc-lookup-failed',
+      severity: 'warning',
+      title: 'DMARC could not be checked',
+      detail:
+        `${failed ? describeLookup(failed) : 'The DMARC lookup got no answer.'} ` +
+        'This is a DNS failure, not evidence that the record is missing — run the check ' +
+        'again in a minute. If it keeps failing, receivers may be failing to fetch it too.',
+    });
+    return out;
+  }
+
   if (!dmarc.found || !dmarc.record) {
     out.push({
       id: 'dmarc-missing',
@@ -372,7 +416,8 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
       detail:
         'Without DMARC you have no say in what receivers do with mail that fails ' +
         'authentication, and no visibility into who is sending as you. Google and ' +
-        'Yahoo have required DMARC for bulk senders since February 2024.',
+        'Yahoo have required DMARC for bulk senders since February 2024. ' +
+        dmarc.lookups.map(describeLookup).join(' '),
       fix: {
         kind: 'record',
         host: `_dmarc.${domain}`,
@@ -677,6 +722,18 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
 // MTA-STS, TLS-RPT, BIMI, DNSSEC
 // ---------------------------------------------------------------------------
 
+/** A record we could not read, said as such rather than as "not published". */
+function lookupFailed(id: FindingId, label: string, lookup: TxtLookup): Finding {
+  return {
+    id,
+    severity: 'info',
+    title: `${label} could not be checked`,
+    detail:
+      `${describeLookup(lookup)} That is a DNS failure, not evidence the record is ` +
+      'missing. Run the check again in a minute.',
+  };
+}
+
 function modernFindings(input: CheckInput): Finding[] {
   const { domain, mtaSts, tlsRpt, bimi, dnssec, mx, nullMx } = input;
   const out: Finding[] = [];
@@ -751,6 +808,8 @@ function modernFindings(input: CheckInput): Finding[] {
         detail: 'Senders are required to use TLS and to verify your mail server certificate.',
       });
     }
+  } else if (mtaSts.lookup.status === 'unknown') {
+    out.push(lookupFailed('mtasts-lookup-failed', 'MTA-STS', mtaSts.lookup));
   } else if (receivesMail) {
     out.push({
       id: 'mtasts-missing',
@@ -779,6 +838,8 @@ function modernFindings(input: CheckInput): Finding[] {
     for (const err of tlsRpt.errors) {
       out.push({ id: 'tlsrpt-syntax', severity: 'warning', title: 'TLS-RPT problem', detail: err });
     }
+  } else if (tlsRpt.lookup.status === 'unknown') {
+    out.push(lookupFailed('tlsrpt-lookup-failed', 'TLS-RPT', tlsRpt.lookup));
   } else if (receivesMail) {
     out.push({
       id: 'tlsrpt-missing',

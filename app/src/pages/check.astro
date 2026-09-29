@@ -87,6 +87,11 @@ const headline = !result
 const affiliate = dmarcAffiliate();
 const affiliateFor =
   affiliate && result ? affiliateFindingId(result.report.findings.map((f) => f.id)) : null;
+
+// Where a record really lives when its name is an alias — managed DMARC and MTA-STS
+// providers host records this way, and the target usually names the provider.
+const viaCname = (chain: string[]) =>
+  chain.length > 0 ? ` · via CNAME to ${chain[chain.length - 1]}` : '';
 ---
 
 <Base title={title} noindex={true}>
@@ -118,9 +123,12 @@ const affiliateFor =
         </p>
         <p class="meta">
           {result.queryCount} DNS queries in {result.elapsedMs}ms ·
-          SPF {result.spf.found ? `${result.spf.lookupCount}/10 lookups` : 'not published'} ·
+          SPF {result.spf.lookupError ? 'could not be checked'
+            : !result.spf.found ? 'not published'
+            : `${result.spf.lookupCount}/10 lookups`} ·
           DKIM {result.dkim.keys.length > 0 ? `${result.dkim.keys.length} key${result.dkim.keys.length === 1 ? '' : 's'}` : 'none found'} ·
-          DMARC {result.dmarc.record?.effectivePolicy ? `p=${result.dmarc.record.effectivePolicy}` : 'not published'} ·
+          DMARC {result.dmarc.record?.effectivePolicy ? `p=${result.dmarc.record.effectivePolicy}`
+            : result.dmarc.status === 'unknown' ? 'could not be checked' : 'not published'} ·
           MTA-STS {result.mtaSts.policy?.mode ?? (result.mtaSts.record ? 'record only' : 'none')} ·
           DNSSEC {result.dnssec.unknown ? 'unknown' : result.dnssec.signed ? 'signed' : 'unsigned'}
         </p>
@@ -162,13 +170,14 @@ const affiliateFor =
               <div class="rec-label">
                 DMARC · _dmarc.{result.dmarc.record.foundAt}
                 {result.dmarc.record.inherited && ' (inherited)'}
+                {viaCname(result.dmarc.record.cnameChain)}
               </div>
               <pre>{result.dmarc.record.raw}</pre>
             </div>
           )}
           {result.mtaSts.record && (
             <div class="rec">
-              <div class="rec-label">MTA-STS · _mta-sts.{result.domain}</div>
+              <div class="rec-label">MTA-STS · _mta-sts.{result.domain}{viaCname(result.mtaSts.lookup.cnameChain)}</div>
               <pre>{result.mtaSts.record}</pre>
               {result.mtaSts.policy && (
                 <pre class="policy">{[
@@ -183,14 +192,14 @@ const affiliateFor =
 
           {result.tlsRpt.record && (
             <div class="rec">
-              <div class="rec-label">TLS-RPT · _smtp._tls.{result.domain}</div>
+              <div class="rec-label">TLS-RPT · _smtp._tls.{result.domain}{viaCname(result.tlsRpt.lookup.cnameChain)}</div>
               <pre>{result.tlsRpt.record}</pre>
             </div>
           )}
 
           {result.bimi.record && (
             <div class="rec">
-              <div class="rec-label">BIMI · default._bimi.{result.domain}</div>
+              <div class="rec-label">BIMI · default._bimi.{result.domain}{viaCname(result.bimi.lookup.cnameChain)}</div>
               <pre>{result.bimi.record}</pre>
             </div>
           )}

@@ -48,6 +48,7 @@ export const FINDING_IDS = [
   'spf-missing', 'spf-lookup-limit', 'spf-lookup-headroom', 'spf-permissive-all',
   'spf-no-all', 'spf-neutral-all', 'spf-macros', 'spf-multiple-records',
   'spf-void-limit', 'spf-ptr', 'spf-loop', 'spf-mx-fanout', 'spf-syntax',
+  'spf-lookup-failed',
   // DKIM
   'non-sending-domain', 'dkim-wildcard-dns', 'dkim-none-found', 'dkim-weak-key',
   'dkim-revoked', 'dkim-testing', 'dkim-ok',
@@ -55,10 +56,11 @@ export const FINDING_IDS = [
   'dmarc-missing', 'dmarc-inherited', 'dmarc-p-none', 'dmarc-quarantine',
   'dmarc-reject', 'dmarc-pct', 'dmarc-no-rua', 'dmarc-rua-undeliverable',
   'dmarc-external-unauthorised', 'dmarc-sp-weaker', 'dmarc-syntax', 'dmarc-unknown-tags',
-  'dmarc-test-mode', 'dmarc-no-np', 'dmarc-deprecated-tags',
+  'dmarc-test-mode', 'dmarc-no-np', 'dmarc-deprecated-tags', 'dmarc-lookup-failed',
   // MTA-STS / TLS-RPT / BIMI / DNSSEC
   'mtasts-policy-unreachable', 'mtasts-mx-mismatch', 'mtasts-testing', 'mtasts-syntax',
-  'mtasts-ok', 'mtasts-missing', 'tlsrpt-syntax', 'tlsrpt-missing',
+  'mtasts-ok', 'mtasts-missing', 'mtasts-lookup-failed', 'tlsrpt-syntax', 'tlsrpt-missing',
+  'tlsrpt-lookup-failed',
   'bimi-without-enforcement', 'bimi-syntax', 'bimi-no-vmc', 'bimi-opportunity',
   'dnssec-ok', 'dnssec-missing',
   // Header analyzer
