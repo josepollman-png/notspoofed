@@ -1,10 +1,12 @@
 ---
 title: "Why DMARC fails when SPF and DKIM pass"
-description: "Passing SPF is not enough — the domain that passed has to match the one your recipient sees. How to read alignment from your own message headers."
+titleTag: "DMARC fail but SPF and DKIM pass? It's alignment – the fix"
+description: "SPF and DKIM passed for your vendor's domain, not the one in your From header. How to read alignment from your headers and fix it with DKIM signing."
+answer: "DMARC fails when SPF and DKIM pass for a domain other than the one in your visible From header. Usually a marketing, invoicing or helpdesk platform sends with its own envelope and signing domain. The fix is to have that platform DKIM-sign as your domain, so d= matches your From domain and DMARC passes."
 question: "Why does DMARC fail when SPF passes?"
 category: "DMARC"
 published: 2026-07-31
-updated: 2026-07-31
+updated: 2026-09-22
 order: 25
 faq:
   - q: "Why does DMARC fail when SPF passes?"
@@ -95,7 +97,9 @@ From: Your Company <hello@yourcompany.com>     ← the domain that must be match
 ```
 
 If neither the `smtp.mailfrom` domain nor the DKIM `d=` matches your From domain, DMARC
-will fail no matter how correct your SPF record is.
+will fail no matter how correct your SPF record is. For the other combinations your
+header can show, see
+[what every SPF, DKIM and DMARC pass/fail combination means](/guide/spf-dkim-dmarc-results).
 
 Our [header analyzer](/headers) does this comparison for you and shows the result as a
 table — including the relaxed-versus-strict distinction. It runs in your browser, so

@@ -1,10 +1,12 @@
 ---
 title: "554 5.7.5 permanent error evaluating DMARC policy"
-description: "Gmail rejected your mail because it could not reach a usable DMARC result. Almost always your DNS, not the message. How to tell which of three causes it is."
+titleTag: "554 5.7.5 permanent error evaluating DMARC policy: the fix"
+description: "Gmail bounced your mail with 554 5.7.5? It's your DMARC DNS, not the message: two records at _dmarc, a malformed record or failed alignment. The fix."
+answer: "554 5.7.5 means the receiver could not get a usable DMARC result for your domain and refused the message rather than guess. It is a DNS fault, not spam. The usual cause is two v=DMARC1 records at _dmarc, then a malformed record, and last a valid policy with failing alignment. Keep exactly one valid record."
 question: "What does 554 5.7.5 permanent error evaluating DMARC policy mean?"
 category: "Error messages"
 published: 2026-08-14
-updated: 2026-08-14
+updated: 2026-09-22
 order: 18
 faq:
   - q: "Does 554 5.7.5 mean my email was hacked?"
@@ -100,13 +102,16 @@ reject it.
 The word doing the work is **alignment**. SPF can pass for the envelope domain while the
 `From:` header shows a different one, and DMARC only counts a pass that matches the
 domain your recipient sees. Most "we have SPF and it still fails" reports are this.
+Security gateways enforce the same policy in their own words — Mimecast returns
+`550 DMARC Sender Invalid - envelope rejected`, and its whole family of rejection
+messages is [decoded here](/guide/bounce/mimecast-rejected).
 
-→ [Why DMARC fails when SPF and DKIM pass](/guides/dmarc-fails-when-spf-passes/)
+→ [Why DMARC fails when SPF and DKIM pass](/guide/dmarc-fails-when-spf-passes)
 
 If this is the cause, dropping to `p=none` will make the rejections stop immediately —
 but understand that this fixes the symptom by turning enforcement off, and leaves your
 domain spoofable while you sort out the real alignment problem.
-→ [What DMARC p=none actually does](/guides/dmarc-p-none/)
+→ [What DMARC p=none actually does](/guide/dmarc-p-none)
 
 ## Fix it in order
 

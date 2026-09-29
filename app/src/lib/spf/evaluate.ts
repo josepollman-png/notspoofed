@@ -17,18 +17,52 @@ export const VOID_LIMIT = 2;
 /** RFC 7208 §4.6.4 — a single `mx` or `ptr` may not fan out past 10 records. */
 export const MX_PTR_LIMIT = 10;
 
+/**
+ * One evaluated term that costs a lookup, with the counters as they stood when the
+ * receiver reached it. The running totals follow RFC 7208's evaluation order — depth
+ * first, left to right — so `lookupsAfter` is the exact point at which a receiver would
+ * give up with a PermError. The lookup counter tool draws its tree from these.
+ */
+export interface SpfChild {
+  term: Term;
+  node: SpfNode | null;
+  skipped?: string;
+  /** Lookups charged so far, including this term. */
+  lookupsAfter?: number;
+  /** Void lookups caused by this term's own query (not its children's). */
+  voids?: number;
+  /** Void lookups so far, including this term's own. */
+  voidsAfter?: number;
+}
+
 export interface SpfNode {
   domain: string;
   record: string | null;
   parsed: ParsedRecord | null;
   /** Populated for include/redirect terms that were followed. */
-  children: Array<{ term: Term; node: SpfNode | null; skipped?: string }>;
+  children: SpfChild[];
   /** Addresses contributed by this record's own terms, excluding its children.
    *  Kept per-node so flattening can replace one include at a time rather than
    *  demolishing the entire record. */
   ownIp4: string[];
   ownIp6: string[];
   error?: string;
+  /** Void lookups caused by fetching this node's own TXT record. */
+  fetchVoids?: number;
+}
+
+export interface EvaluateOptions {
+  /**
+   * Evaluate this record at the root instead of fetching the domain's own — a draft
+   * pasted into the lookup counter. Includes below it are still resolved live.
+   */
+  record?: string;
+  /**
+   * Keep following includes past the 10th lookup. A receiver stops there, and the
+   * checker does too; the lookup counter needs the whole tree to show what flattening
+   * would have to remove. Counting is unchanged either way.
+   */
+  followBeyondLimit?: boolean;
 }
 
 export interface SpfProblem {
@@ -73,6 +107,7 @@ interface State {
   ip6: Set<string>;
   macros: Term[];
   truncated: boolean;
+  options: EvaluateOptions;
 }
 
 function problem(state: State, domain: string, code: string, message: string): void {
@@ -121,7 +156,11 @@ async function walk(
     domain, record: null, parsed: null, children: [], ownIp4: [], ownIp6: [],
   };
 
-  const { record, error } = await fetchSpf(state, domain);
+  const voidsBefore = state.voids;
+  const { record, error } = path.length === 0 && state.options.record !== undefined
+    ? { record: state.options.record, error: undefined }
+    : await fetchSpf(state, domain);
+  node.fetchVoids = state.voids - voidsBefore;
   if (error) {
     node.error = error;
     problem(state, domain, error.startsWith('PermError') ? 'multiple-records' : 'no-record', error);
@@ -146,52 +185,66 @@ async function walk(
     // Charged before the query, and charged even when we decline to follow it —
     // the limit counts terms evaluated, not packets sent.
     state.lookups++;
+    const lookupsAfter = state.lookups;
+    const voidsBefore = state.voids;
+    const push = (entry: { node: SpfNode | null; skipped?: string }, voids = 0): void => {
+      node.children.push({
+        term, ...entry, lookupsAfter, voids, voidsAfter: voidsBefore + voids,
+      });
+    };
 
     if (term.hasMacro) {
       // %{i} and friends expand from the connecting client's IP. There is no honest
       // static answer, so we count the lookup and say so rather than guessing.
       state.macros.push(term);
-      node.children.push({ term, node: null, skipped: 'macro — not statically evaluable' });
+      push({ node: null, skipped: 'macro — not statically evaluable' });
       continue;
     }
 
-    if (state.lookups > LOOKUP_LIMIT) {
-      node.children.push({ term, node: null, skipped: 'beyond the 10-lookup limit' });
+    if (state.lookups > LOOKUP_LIMIT && !state.options.followBeyondLimit) {
+      push({ node: null, skipped: 'beyond the 10-lookup limit' });
       continue;
     }
 
     if (term.name === 'ptr') {
       problem(state, domain, 'ptr-deprecated',
         'the ptr mechanism is deprecated (RFC 7208 §5.5) and many receivers ignore it');
-      node.children.push({ term, node: null, skipped: 'ptr not followed' });
+      push({ node: null, skipped: 'ptr not followed' });
       continue;
     }
 
     if (term.name === 'a' || term.name === 'mx') {
-      await resolveAddresses(state, node, term, term.value ?? domain, domain);
-      node.children.push({ term, node: null });
+      const target = term.value ?? domain;
+      if (!target) {
+        // A pasted draft with no domain: a bare `a` or `mx` means "this domain", and
+        // there is none to ask about. Charged, not guessed.
+        push({ node: null, skipped: 'needs the domain the record is for' });
+        continue;
+      }
+      await resolveAddresses(state, node, term, target, domain);
+      push({ node: null }, state.voids - voidsBefore);
       continue;
     }
 
     if (term.name === 'exists') {
-      node.children.push({ term, node: null, skipped: 'exists — presence check only' });
+      push({ node: null, skipped: 'exists — presence check only' });
       continue;
     }
 
     // include / redirect
     const target = term.value;
     if (!target) {
-      node.children.push({ term, node: null, skipped: 'no target' });
+      push({ node: null, skipped: 'no target' });
       continue;
     }
     if (path.includes(target.toLowerCase())) {
       problem(state, domain, 'loop', `include loop: ${[...path, target].join(' → ')}`);
-      node.children.push({ term, node: null, skipped: 'loop detected' });
+      push({ node: null, skipped: 'loop detected' });
       continue;
     }
 
     const child = await walk(state, target, [...path, domain.toLowerCase()]);
-    node.children.push({ term, node: child });
+    push({ node: child }, child.fetchVoids ?? 0);
   }
 
   return node;
@@ -255,10 +308,14 @@ function effectiveAll(node: SpfNode | null): string | null {
   return redirect ? effectiveAll(redirect.node) : null;
 }
 
-export async function evaluateSpf(dns: DnsBackend, domain: string): Promise<SpfEvaluation> {
+export async function evaluateSpf(
+  dns: DnsBackend,
+  domain: string,
+  options: EvaluateOptions = {},
+): Promise<SpfEvaluation> {
   const state: State = {
     dns, lookups: 0, voids: 0, problems: [],
-    ip4: new Set(), ip6: new Set(), macros: [], truncated: false,
+    ip4: new Set(), ip6: new Set(), macros: [], truncated: false, options,
   };
 
   let tree: SpfNode | null = null;

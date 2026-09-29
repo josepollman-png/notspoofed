@@ -95,7 +95,7 @@ export const GET: APIRoute = async () => {
       '',
       `# ${g.data.title}`,
       '',
-      `Canonical: ${absoluteUrl(`/guides/${g.id}/`)}`,
+      `Canonical: ${absoluteUrl(`/guide/${g.id}`)}`,
       `Question answered: ${g.data.question}`,
       `Published: ${date(g.data.published)}. Last checked: ${date(g.data.updated)}.`,
       '',

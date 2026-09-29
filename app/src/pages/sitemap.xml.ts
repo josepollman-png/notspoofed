@@ -1,37 +1,38 @@
 import type { APIRoute } from 'astro';
+import { siteEntries, toolsEntries, urlset } from '../lib/sitemap.js';
 import { absoluteUrl } from '../lib/site.js';
 
 /**
- * A sitemap index, not a list of pages.
+ * The one sitemap: every indexable URL on notspoofed.com, both applications, merged.
  *
- * `notspoofed.com` is served by two applications: this one, and the tools app under
- * /tools. Each knows its own routes and neither can enumerate the other's, so there are
- * two sitemaps. Left as two flat files advertised only in robots.txt, submitting
- * "the sitemap" in Search Console covered half the site and silently missed the rest —
- * which is exactly what happened: the tools section's 47 URLs were absent from the one
- * sitemap anybody would think to submit.
+ * It used to be a sitemap *index* pointing at two child sitemaps. That was correct but
+ * indirect, and Bing demonstrated the cost: it read one child and never the other, and
+ * sat on 19 indexed URLs for weeks. A flat list leaves a crawler nothing to skip.
  *
- * An index solves it properly. Submit /sitemap.xml and both are discovered, now and
- * whenever a third is added.
+ * The tools application stays the only authority on its own URLs — they are read from
+ * its sitemap over the internal network, not retyped here (see lib/sitemap.ts). If that
+ * read has never succeeded since this process started, the response falls back to the
+ * index form, which is complete by construction. A half-sitemap is never served.
  */
-export const GET: APIRoute = () => {
-  const sitemaps = [
-    absoluteUrl('/sitemap-site.xml'),
-    // Owned by the tools application. Proxied by Caddy, so it is same-origin and a
-    // valid entry here — a sitemap index may only reference its own host.
-    absoluteUrl('/tools/sitemap.xml'),
-  ];
+export const GET: APIRoute = async () => {
+  const own = await siteEntries();
+  const tools = await toolsEntries();
 
-  const today = new Date().toISOString().slice(0, 10);
-  const body =
-    `<?xml version="1.0" encoding="UTF-8"?>\n` +
-    `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    sitemaps
-      .map((loc) => `  <sitemap>\n    <loc>${loc}</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`)
-      .join('\n') +
-    `\n</sitemapindex>\n`;
+  if (tools === null) {
+    const index =
+      `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+      `  <sitemap>\n    <loc>${absoluteUrl('/sitemap-site.xml')}</loc>\n  </sitemap>\n` +
+      `  <sitemap>\n    <loc>${absoluteUrl('/tools/sitemap.xml')}</loc>\n  </sitemap>\n` +
+      `</sitemapindex>\n`;
+    return new Response(index, { headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
+  }
 
-  return new Response(body, {
+  // De-duplicated by URL, this app's entry winning, in case a page ever appears in both.
+  const seen = new Set(own.map((e) => e.loc));
+  const merged = [...own, ...tools.filter((e) => !seen.has(e.loc))];
+
+  return new Response(urlset(merged), {
     headers: { 'Content-Type': 'application/xml; charset=utf-8' },
   });
 };

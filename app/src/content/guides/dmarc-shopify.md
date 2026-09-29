@@ -1,10 +1,12 @@
 ---
 title: "Email authentication for Shopify"
-description: "Store mail showing as store+123@shopifyemail.com means Shopify rewrote it: your domain isn't authenticated. What to publish, and the DMARC tag that breaks it."
+titleTag: "Shopify email from shopifyemail.com? Set up DMARC and DKIM"
+description: "Store mail sent as store+123@shopifyemail.com means your domain isn't authenticated. Publish Shopify's CNAMEs and a DMARC record, and avoid adkim=s."
+answer: "Shopify rewrites your sender to shopifyemail.com when your domain is not authenticated. To fix it, add the CNAME records Shopify gives you under Settings → Notifications → Sender email, which cover DKIM and SPF, then publish a DMARC TXT record at _dmarc of at least v=DMARC1; p=none. Do not use adkim=s or aspf=s."
 question: "Why does my Shopify email come from shopifyemail.com?"
 category: "Providers"
 published: 2026-08-14
-updated: 2026-08-14
+updated: 2026-09-22
 order: 28
 faq:
   - q: "Why does my Shopify store email show as store+123@shopifyemail.com?"
@@ -92,8 +94,8 @@ legitimate sender passing, move up: `p=quarantine`, then `p=reject`. Do it in th
 and read the reports at each stage — a store domain usually has more senders than the
 owner expects, between the platform, a marketing tool and a support desk.
 
-→ [What DMARC p=none actually does](/guides/dmarc-p-none/)
-→ [Google and Yahoo's sender requirements](/guides/google-yahoo-sender-requirements/)
+→ [What DMARC p=none actually does](/guide/dmarc-p-none)
+→ [Google and Yahoo's sender requirements](/guide/google-yahoo-sender-requirements)
 
 ## Checklist
 

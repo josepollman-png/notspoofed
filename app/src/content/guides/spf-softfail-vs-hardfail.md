@@ -1,10 +1,12 @@
 ---
 title: "SPF: should it end in ~all or -all?"
-description: "The difference matters far less than the arguments about it suggest, and the settings people choose instead of either are the ones that actually break things."
+titleTag: "SPF ~all vs -all: softfail or hardfail? Which to use"
+description: "~all vs -all matters less than you think once DMARC is in place. When to use softfail, when to move to hardfail, and the +all and missing-all mistakes."
+answer: "Use ~all (softfail) while you are still discovering every system that sends as you, and -all (hardfail) once DMARC reports show no unexplained senders. With DMARC, both give the same outcome, because DMARC only asks whether SPF passed and aligned. Never publish +all or ?all, and never leave the all off."
 question: "Should my SPF record end in ~all or -all?"
 category: "SPF"
 published: 2026-08-03
-updated: 2026-08-03
+updated: 2026-09-22
 order: 15
 faq:
   - q: "What is the difference between ~all and -all in SPF?"
@@ -129,7 +131,8 @@ example.com.  TXT  "v=spf1 include:_spf.google.com include:sendgrid.net -all"
 
 One caution while editing: every `include:` you add costs DNS lookups against a limit of
 ten, and going over silently disables the whole record. If you are close to the limit,
-see [SPF: too many DNS lookups](/guides/spf-too-many-dns-lookups/).
+see [SPF: too many DNS lookups](/guide/spf-too-many-dns-lookups), and paste your edited record
+into the [SPF lookup counter](/tools/spf-lookup-counter) before you publish it.
 
 Run the domain through the [checker](/) to see which ending you currently publish, how
 many lookups you are using, and whether anything is failing.

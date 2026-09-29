@@ -88,7 +88,12 @@ function isOwnGuide(referrer: string | null, selfHost: string): boolean {
   if (!referrer) return false;
   try {
     const url = new URL(referrer);
-    return bare(url.hostname) === bare(selfHost) && url.pathname.startsWith('/guides/');
+    // Both schemes: guides moved from /guides/<slug>/ to /guide/<slug>, and the old
+    // form still arrives as a referrer from anything that cached the previous URL.
+    return (
+      bare(url.hostname) === bare(selfHost) &&
+      (url.pathname.startsWith('/guide/') || url.pathname.startsWith('/guides/'))
+    );
   } catch {
     return false;
   }

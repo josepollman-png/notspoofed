@@ -10,7 +10,8 @@
     "check": "astro check",
     "test": "vitest run",
     "test:live": "LIVE_DNS=1 vitest run test/golden.live.test.ts",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "indexnow": "node scripts/indexnow.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^11.0.3",

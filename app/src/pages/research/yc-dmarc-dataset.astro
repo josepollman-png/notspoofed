@@ -33,16 +33,8 @@ const schema = {
   identifier: absoluteUrl('/research/yc-dmarc-dataset'),
   license: 'https://creativecommons.org/licenses/by/4.0/',
   isAccessibleForFree: true,
-  creator: {
-    '@type': 'Organization',
-    name: 'notspoofed.com',
-    url: absoluteUrl('/'),
-  },
-  publisher: {
-    '@type': 'Organization',
-    name: 'notspoofed.com',
-    url: absoluteUrl('/'),
-  },
+  creator: { '@id': absoluteUrl('/#organization') },
+  publisher: { '@id': absoluteUrl('/#organization') },
   datePublished: '2026-08-14',
   dateModified: '2026-09-03',
   temporalCoverage: '2026-08-14/2026-09-03',

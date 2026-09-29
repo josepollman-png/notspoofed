@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import DomainForm from '../../components/DomainForm.astro';
 import Base from '../../layouts/Base.astro';
+import { BOUNCE_GUIDES, GUIDE_COLLECTIONS } from '../../lib/site.js';
 
 /**
  * A card grid rather than a list, because the list stopped working at fifteen entries.
@@ -39,7 +40,7 @@ const rest = guides.slice(1);
   </div>
 
   <p class="start">
-    New here? Start with <a href={`/guides/${first.id}/`}>{first.data.title}</a> —
+    New here? Start with <a href={`/guide/${first.id}`}>{first.data.title}</a> —
     it tells you which problem you actually have before you change any DNS.
   </p>
 
@@ -50,8 +51,35 @@ const rest = guides.slice(1);
         {/* The whole card is the target. The anchor keeps the real href so it still
             works without CSS and reads correctly to a screen reader; the pseudo-element
             stretches its hit area over the card. */}
-        <h2><a href={`/guides/${guide.id}/`}>{guide.data.title}</a></h2>
+        <h2><a href={`/guide/${guide.id}`}>{guide.data.title}</a></h2>
         <p class="desc">{guide.data.description}</p>
+      </li>
+    ))}
+  </ul>
+
+  {/*
+    The guides in the tools application, which this page listed none of. The six bounce
+    guides are named individually because they are the pages closest to ranking; the
+    rest are reached through the index that already lists them all.
+  */}
+  <h2 class="more-h">Why a message bounced</h2>
+  <p class="more-p">
+    Twenty-one more guides decode a specific SMTP rejection. These are the ones people
+    arrive needing most:
+  </p>
+  <ul class="grid">
+    {BOUNCE_GUIDES.map((guide) => (
+      <li class="card">
+        <p class="cat">Bounces</p>
+        <h3><a href={guide.href}>{guide.title}</a></h3>
+      </li>
+    ))}
+  </ul>
+
+  <ul class="collections">
+    {GUIDE_COLLECTIONS.map((c) => (
+      <li>
+        <a href={c.href}>{c.title}</a> — {c.description}
       </li>
     ))}
   </ul>
@@ -61,6 +89,12 @@ const rest = guides.slice(1);
 </Base>
 
 <style>
+  /* The new sections reuse .grid and .card; these only space the headings and list. */
+  .more-h { margin: 44px 0 6px; }
+  .more-p { margin: 0 0 18px; color: var(--muted); }
+  .collections { margin: 22px 0 0; padding-left: 20px; }
+  .collections li { margin-bottom: 10px; color: var(--muted); }
+
   .hero { text-align: center; margin-bottom: 30px; }
 
   .eyebrow {

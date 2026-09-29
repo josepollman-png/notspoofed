@@ -19,6 +19,12 @@ const DISALLOW = [
   // Same reasoning as /check — the JSON endpoint is the same unbounded, expensive
   // work with a different Content-Type. /api (the docs page) stays crawlable.
   'Disallow: /api/check',
+  // The DKIM selector finder's own endpoint. Same-origin only — it answers 403 to
+  // anything else — but a crawler that finds the URL in page source should not spend
+  // its budget learning that.
+  'Disallow: /api/dkim-selectors',
+  // The SPF lookup counter's endpoint: same-origin POST only, same reasoning.
+  'Disallow: /api/spf-lookups',
   // Prefix match on the query string only: /ip?ip=… is an unbounded result space,
   // while bare /ip is a landing page we want indexed.
   'Disallow: /ip?',

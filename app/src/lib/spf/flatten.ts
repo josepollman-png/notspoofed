@@ -98,7 +98,7 @@ function collapseV4(entries: readonly string[]): string[] {
 // ---------------------------------------------------------------------------
 
 /** Costly terms in this node and everything below it. */
-function subtreeCost(node: SpfNode | null): number {
+export function subtreeCost(node: SpfNode | null): number {
   if (!node?.parsed) return 0;
   let cost = 0;
   for (const term of node.parsed.terms) if (term.costsLookup) cost++;

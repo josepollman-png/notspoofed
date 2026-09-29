@@ -52,7 +52,6 @@ const TOOLS = [
 
 /** Guides on the tools application. Same drift caveat as TOOLS. */
 const TOOL_GUIDES = [
-  ['/guide/gmail-yahoo-requirements', 'The Gmail and Yahoo requirements in full'],
   ['/guide/list-unsubscribe-not-dkim-signed', 'List-Unsubscribe not in the DKIM signature'],
   ['/guide/missing-list-unsubscribe-post', 'Missing List-Unsubscribe-Post header'],
   ['/guide/tls-rpt-setup', 'Setting up TLS-RPT and reading the reports'],
@@ -104,6 +103,16 @@ export const GET: APIRoute = async () => {
     link('/ip', 'IP reputation', 'blocklists, forward-confirmed reverse DNS and ASN for a sending IP'),
     ...TOOLS.map((t) => link(t.path, t.label, t.blurb)),
     link('/tools', 'All deliverability tools'),
+    link(
+      '/tools/dkim-selector-finder',
+      'DKIM Selector Finder',
+      'Which DKIM selectors a domain actually has: tests the selectors every major provider uses, follows CNAME delegation, reports key size, testing mode and revoked keys.',
+    ),
+    link(
+      '/tools/spf-lookup-counter',
+      'SPF Lookup Counter',
+      'Counts the DNS lookups an SPF record costs against the limit of 10, draws the include/redirect tree with a running total and void lookups, and tests a pasted draft before it is published.',
+    ),
     link('/api', 'API', 'free JSON API, no key'),
     '',
     '## Original research',
@@ -120,14 +129,14 @@ export const GET: APIRoute = async () => {
     '',
     '## Guides',
     '',
-    ...guides.map((g) => link(`/guides/${g.id}/`, g.data.title, g.data.description)),
+    ...guides.map((g) => link(`/guide/${g.id}`, g.data.title, g.data.description)),
     ...TOOL_GUIDES.map(([path, label]) => link(path, label)),
     '',
     '## For agents',
     '',
     link('/llms-full.txt', 'Full text of every guide and research page', 'one markdown file'),
     'Every guide is also served as markdown at its own URL with a .md suffix, e.g.',
-    absoluteUrl('/guides/spf-too-many-dns-lookups.md') + ' — and advertised from the HTML page',
+    absoluteUrl('/guide/spf-too-many-dns-lookups.md') + ' — and advertised from the HTML page',
     'with <link rel="alternate" type="text/markdown">.',
     '',
     '## About',

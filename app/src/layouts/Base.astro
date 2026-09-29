@@ -1,4 +1,5 @@
 ---
+import { siteGraph } from '../lib/schema.js';
 import { absoluteUrl } from '../lib/site.js';
 
 interface Props {
@@ -78,6 +79,17 @@ const imageUrl = absoluteUrl(image);
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    {/*
+      Organization, Person and WebSite, on every page.
+
+      Every article on this site names its author and publisher by @id. Those were
+      defined only on / and /about, so on a guide reached straight from a search result
+      the references pointed at nodes the crawler had never fetched — a dangling
+      reference, not a byline. The nodes are small and identical everywhere, and the
+      tools application on this same hostname emits the same two under the same two
+      identifiers. scripts/check-jsonld.mjs fails if they ever diverge.
+    */}
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(siteGraph())} />
     {/* Per-page head additions: a guide advertises its markdown twin here. */}
     <slot name="head" />
     <style is:global>
@@ -188,6 +200,8 @@ const imageUrl = absoluteUrl(image);
           <a href="/headers">Headers</a>
           <a href="/ip">IP</a>
           <a href="/tools">Tools</a>
+          {/* Mirrored in the tools app's SiteChrome.tsx; its parity test compares the two. */}
+          <a href="/tools/bounce-decoder">Bounces</a>
           <a href="/guides">Guides</a>
           <a href="/api">API</a>
         </nav>

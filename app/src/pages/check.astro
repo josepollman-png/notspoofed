@@ -1,6 +1,7 @@
 ---
 import DomainForm from '../components/DomainForm.astro';
 import FindingCard from '../components/FindingCard.astro';
+import { affiliateFindingId, dmarcAffiliate } from '../lib/affiliate.js';
 import Base from '../layouts/Base.astro';
 import { InvalidDomainError, runCheck, type CheckResult } from '../lib/check.js';
 import { clientIp, rateLimit, RATE_LIMIT } from '../lib/ratelimit.js';
@@ -81,6 +82,11 @@ const headline = !result
     : counts!.warning > 0
       ? `${counts!.warning} ${counts!.warning === 1 ? 'issue' : 'issues'} worth fixing`
       : 'No problems found';
+
+// The affiliate line: off unless configured, and on one card at most. See lib/affiliate.ts.
+const affiliate = dmarcAffiliate();
+const affiliateFor =
+  affiliate && result ? affiliateFindingId(result.report.findings.map((f) => f.id)) : null;
 ---
 
 <Base title={title} noindex={true}>
@@ -134,7 +140,12 @@ const headline = !result
       </div>
 
       <section>
-        {result.report.findings.map((finding) => <FindingCard finding={finding} />)}
+        {result.report.findings.map((finding) => (
+          <FindingCard
+            finding={finding}
+            affiliate={finding.id === affiliateFor ? affiliate : null}
+          />
+        ))}
       </section>
 
       {(result.spf.found || result.dmarc.record || result.dkim.keys.length > 0 || result.mtaSts.record) && (

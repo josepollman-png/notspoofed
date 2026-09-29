@@ -1,70 +1,18 @@
 import type { APIRoute } from 'astro';
-import { getCollection } from 'astro:content';
-import { absoluteUrl, INDEXABLE_PAGES } from '../lib/site.js';
+import { siteEntries, urlset } from '../lib/sitemap.js';
 
 /**
- * This application's own pages.
+ * This application's pages only.
  *
- * Referenced from the sitemap index at /sitemap.xml, which also points at the tools
- * application's sitemap. It used to live at /sitemap.xml itself, but two applications
- * serve this hostname and a crawler given one flat sitemap only ever saw half the site.
+ * `/sitemap.xml` is the entry point and already includes everything here. This file
+ * stays valid because it is registered in Search Console and Bing Webmaster Tools, and
+ * a submitted sitemap that starts returning 404 or redirecting is reported as an error
+ * there. Listing a URL in two sitemaps is harmless; losing a submitted one is noise.
  *
- * Hand-rolled rather than @astrojs/sitemap, because that integration enumerates every
- * route at build time and would happily list /check and /api/check — the two routes
- * that must never be crawled. Listing only what we want indexed is the safer default.
+ * Hand-rolled rather than @astrojs/sitemap, which would enumerate /check and
+ * /api/check — the two routes that must never be crawled.
  */
-export const GET: APIRoute = async () => {
-  const guides = await getCollection('guides');
-  const research = (await getCollection('research')).filter((entry) => !entry.data.draft);
-  // The newest content date on the site: what the pages that list the collection last
-  // changed, as far as a crawler should care.
-  const newest = [...guides, ...research]
-    .map((e) => e.data.updated.toISOString().slice(0, 10))
-    .sort()
-    .at(-1)!;
-
-  const entries = [
-    ...INDEXABLE_PAGES.map((p) => ({
-      loc: absoluteUrl(p.path),
-      lastmod: p.lastmod === 'collection' ? newest : p.lastmod,
-      changefreq: p.changefreq as string,
-      priority: p.priority as string,
-    })),
-    ...guides.map((guide) => ({
-      loc: absoluteUrl(`/guides/${guide.id}/`),
-      // The guide's own updated date, not today's — claiming everything changed
-      // daily is exactly the signal that gets a sitemap's dates ignored.
-      lastmod: guide.data.updated.toISOString().slice(0, 10),
-      changefreq: 'monthly',
-      priority: '0.8',
-    })),
-    // Research pages carry their own canonical path — they do not share a prefix. Drafts
-    // are filtered out here as well as sending noindex: a page listed in the sitemap and
-    // then refused by a meta tag is a contradiction crawlers report as an error.
-    ...research
-      .map((entry) => ({
-        loc: absoluteUrl(entry.data.path),
-        lastmod: entry.data.updated.toISOString().slice(0, 10),
-        changefreq: 'yearly',
-        priority: '0.9',
-      })),
-  ];
-
-  const urls = entries
-    .map(
-      (e) =>
-        `  <url>\n` +
-        `    <loc>${e.loc}</loc>\n` +
-        `    <lastmod>${e.lastmod}</lastmod>\n` +
-        `    <changefreq>${e.changefreq}</changefreq>\n` +
-        `    <priority>${e.priority}</priority>\n` +
-        `  </url>`,
-    )
-    .join('\n');
-
-  return new Response(
-    `<?xml version="1.0" encoding="UTF-8"?>\n` +
-      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
-    { headers: { 'Content-Type': 'application/xml; charset=utf-8' } },
-  );
-};
+export const GET: APIRoute = async () =>
+  new Response(urlset(await siteEntries()), {
+    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+  });

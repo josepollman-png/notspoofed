@@ -50,6 +50,19 @@ import schema from '../../data/yc-study-schema.json?raw';
     font-weight: 650;
   }
   .study :global(.dek) { color: var(--muted); font-size: 0.94rem; margin: 0 0 2.4rem; }
+
+  /* The citation block. Same surface treatment as the tables and code already on the
+     page — nothing new, just a box a reader can copy the line out of. */
+  .study :global(.cite) { margin-top: 2.9rem; }
+  .study :global(.citation) {
+    margin: 0 0 1.15rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    font-size: 0.94rem;
+  }
   .study :global(p) { margin: 0 0 1.15rem; }
   .study :global(strong) { font-weight: 650; }
   .study :global(code) {

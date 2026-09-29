@@ -20,8 +20,21 @@ const guides = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/guides' }),
   schema: z.object({
     title: z.string(),
+    /**
+     * The <title>, when it should differ from the on-page <h1>. At most 60 characters,
+     * primary keyword first, and it stands alone — the site name is not appended,
+     * because Google shows the site name separately and the suffix would push the
+     * keyword past the point where a result is truncated. og:site_name carries the name.
+     */
+    titleTag: z.string().max(60).optional(),
     /** Used verbatim as the meta description, so write it for a search result. */
     description: z.string().max(180),
+    /**
+     * The answer, in 40 to 60 plain words, rendered directly under the heading. It has
+     * to survive being the only thing read — by a person in a hurry or by an answer
+     * engine quoting one passage — so it answers the question in the title outright.
+     */
+    answer: z.string().optional(),
     /** The question the reader typed into a search engine. */
     question: z.string(),
     /**

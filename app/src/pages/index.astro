@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 import DomainForm from '../components/DomainForm.astro';
 import Base from '../layouts/Base.astro';
-import { absoluteUrl } from '../lib/site.js';
+import { BOUNCE_GUIDES, absoluteUrl } from '../lib/site.js';
 import { RATE_LIMIT } from '../lib/ratelimit.js';
 
 /**
@@ -14,10 +14,21 @@ import { RATE_LIMIT } from '../lib/ratelimit.js';
  * the collection grows. `order` is the editorial ranking, so the cut is deliberate
  * rather than alphabetical, and everything below it is one click away.
  */
-const FEATURED = 6;
+const FEATURED = 8;
+
+/**
+ * Always on the home page, whatever their `order`. Both answer questions people search
+ * in volume — which DKIM selector a domain uses, and why DMARC fails when SPF passes —
+ * and both ranked well below the editorial cut, so the most authoritative page on the
+ * site never linked to either. Listed first, then the editorial ranking fills the rest.
+ */
+const PINNED = ['dkim-selectors', 'dmarc-fails-when-spf-passes'];
 
 const guides = (await getCollection('guides')).sort((a, b) => a.data.order - b.data.order);
-const featured = guides.slice(0, FEATURED);
+const featured = [
+  ...PINNED.map((id) => guides.find((g) => g.id === id)).filter((g) => g !== undefined),
+  ...guides.filter((g) => !PINNED.includes(g.id)),
+].slice(0, FEATURED);
 
 /**
  * Site-level schema. The guide pages have carried TechArticle and FAQPage since they were
@@ -30,24 +41,24 @@ const featured = guides.slice(0, FEATURED);
 const siteSchema = {
   '@context': 'https://schema.org',
   '@graph': [
-    {
-      '@type': 'Organization',
-      '@id': absoluteUrl('/#org'),
-      name: 'notspoofed.com',
-      url: absoluteUrl('/'),
-      logo: absoluteUrl('/og-default.png'),
-      sameAs: ['https://github.com/josepollman-png/notspoofed'],
-    },
+    /*
+     * No Organization node here. The base layout emits it — with Person and WebSite —
+     * on every page of the site, and a second definition under the same @id is a second
+     * chance to drift: this copy had no `email` and no `founder` the day those were
+     * added to the shared one. The application below references it instead.
+     */
     {
       '@type': 'SoftwareApplication',
       '@id': absoluteUrl('/#app'),
-      name: 'notspoofed',
+      // Same spelling as the Organization and the visible header. A near-miss like
+      // "notspoofed" beside "notspoofed.com" reads as two things to a resolver.
+      name: 'notspoofed.com',
       applicationCategory: 'SecurityApplication',
       operatingSystem: 'Web',
       url: absoluteUrl('/'),
       description:
         'Free SPF, DKIM and DMARC checker that tells you exactly which record to publish to fix email authentication.',
-      publisher: { '@id': absoluteUrl('/#org') },
+      publisher: { '@id': absoluteUrl('/#organization') },
       // price 0 is the claim worth making machine-readable: "free" in prose is a word
       // every paid tool with a trial also uses.
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
@@ -129,7 +140,9 @@ const faqSchema = {
         your record stops working — silently, with no bounce and no warning. We walk
         the whole <code>include:</code> chain, follow <code>redirect=</code>, and
         show you the count. If you're over, we generate a corrected record that
-        flattens only the includes it has to.
+        flattens only the includes it has to. To see the whole tree, or to test a
+        draft before you publish it, use the
+        <a href="/tools/spf-lookup-counter">SPF lookup counter</a>.
       </dd>
 
       <dt>DKIM, without inventing selectors</dt>
@@ -162,6 +175,12 @@ const faqSchema = {
       runs the whole list — and says plainly which requirements no domain-only check
       can confirm, instead of showing a green tick for something it never verified.
     </p>
+    <p>
+      If a message failed DKIM and you do not know which selector signed it, the{' '}
+      <a href="/tools/dkim-selector-finder">DKIM selector finder</a> tests the names every
+      major provider publishes and reports the key it finds — including whether it is
+      revoked, in testing mode, or too small.
+    </p>
 
     <h2>Our research</h2>
     <p>
@@ -189,7 +208,7 @@ const faqSchema = {
     </p>
     <ul class="links">
       {featured.map((guide) => (
-        <li><a href={`/guides/${guide.id}/`}>{guide.data.title}</a></li>
+        <li><a href={`/guide/${guide.id}`}>{guide.data.title}</a></li>
       ))}
     </ul>
     {guides.length > FEATURED && (
@@ -197,6 +216,32 @@ const faqSchema = {
         <a href="/guides">All {guides.length} guides</a>
       </p>
     )}
+
+    {/*
+      The bounce guides live in the tools application on this same hostname, so nothing
+      on this page could link to them and they were reachable only from /tools. They are
+      also the best-performing pages the site has — the ones already sitting on page two
+      of a search result rather than page nine — which makes a link from the home page
+      the single most valuable internal link available.
+
+      Hardcoded rather than generated: this half of the site cannot import the other
+      half's knowledge base, and a wrong slug here is a 404 the build cannot catch.
+      There is a link check in scripts/check-links.mjs that fetches every one of these.
+    */}
+    <h2>Why a message bounced</h2>
+    <p>
+      A bounce quotes an SMTP code and a line of provider text, and the two rarely mean
+      the same thing. These decode the ones we see most, each with the fix and who has
+      to make it:
+    </p>
+    <ul class="links">
+      {BOUNCE_GUIDES.map((guide) => (
+        <li><a href={guide.href}>{guide.title}</a></li>
+      ))}
+    </ul>
+    <p class="more">
+      <a href="/tools/bounce-decoder">Decode a bounce you have</a>
+    </p>
 
     <h2>Common questions</h2>
     <dl class="faq">

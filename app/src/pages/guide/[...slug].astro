@@ -1,0 +1,223 @@
+---
+import { getEntry, render } from 'astro:content';
+import DomainForm from '../../components/DomainForm.astro';
+import Base from '../../layouts/Base.astro';
+import { absoluteUrl } from '../../lib/site.js';
+
+// Canonical home of every guide on this half of the hostname.
+//
+// The site serves two path spaces that differ by one letter: this app owns /guide/<slug>
+// for its own guides, and the Next.js tools application owns /guide/<slug> for its
+// bounce and tool guides plus everything under /guide/bounce/. Caddy routes /guide/* to
+// that app, which passes anything it does not itself route back here through a fallback
+// rewrite — see its next.config.ts. The plural /guides/<slug>/ is the old scheme and now
+// redirects here permanently; /guides on its own is still the hub index.
+//
+// Rendered on demand rather than prerendered. Prerendering would bake canonical and
+// og:url at build time, and the image is built without PUBLIC_SITE_URL — so every
+// guide would advertise itself as living on localhost:3000. Markdown rendering is
+// cheap enough that serving these per request costs nothing worth optimising.
+const slug = Astro.params.slug?.replace(/\/$/, '') ?? '';
+const guide = slug ? await getEntry('guides', slug) : undefined;
+
+if (!guide) {
+  return new Response('Guide not found', { status: 404 });
+}
+
+const { Content } = await render(guide);
+const path = `/guide/${guide.id}`;
+
+// Article schema so the published/updated dates are machine-readable — staleness is
+// the main reason to distrust advice in this area, so we make the date explicit
+// rather than hiding it.
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'TechArticle',
+  headline: guide.data.title,
+  description: guide.data.description,
+  datePublished: guide.data.published.toISOString().slice(0, 10),
+  dateModified: guide.data.updated.toISOString().slice(0, 10),
+  mainEntityOfPage: { '@type': 'WebPage', '@id': absoluteUrl(path) },
+  // A named author and a publisher, both resolvable: an article nobody signs is the
+  // pattern search and answer engines have learned to discount, and /about is where
+  // the name is explained.
+  author: { '@id': absoluteUrl('/about#author') },
+  publisher: { '@id': absoluteUrl('/#organization') },
+  inLanguage: 'en',
+};
+
+const markdownUrl = absoluteUrl(`/guide/${guide.id}.md`);
+
+/**
+ * The tool that settles what this guide describes, linked in words.
+ *
+ * Every guide already ends with a domain form, but a form is not a link: nothing on the
+ * page told a reader — or a crawler — that the DKIM guides have a selector finder or that
+ * the alignment guides have a header analyzer. Chosen by what the reader needs next, not
+ * by category: the alignment guides go to the header analyzer because the question is
+ * about one specific message, not the domain's records.
+ */
+const TOOL_BY_GUIDE: Record<string, { href: string; lead: string; anchor: string; tail: string }> = {
+  'dkim-selectors': { href: '/tools/dkim-selector-finder', lead: 'Test a domain against every common selector with the ', anchor: 'DKIM selector finder', tail: ', which also reports key size and revoked keys.' },
+  'dkim-selector-list': { href: '/tools/dkim-selector-finder', lead: 'Check which of these a domain actually publishes with the ', anchor: 'DKIM selector finder', tail: '.' },
+  'spf-pass-dkim-fail': { href: '/headers', lead: 'Paste the headers of the failing message into the ', anchor: 'email header analyzer', tail: ' to see which signature failed and why DMARC did or did not pass.' },
+  'dkim-pass-spf-fail': { href: '/headers', lead: 'Paste the headers of the message into the ', anchor: 'email header analyzer', tail: ' to see which hop SPF failed at and whether it matters.' },
+  'dmarc-fails-when-spf-passes': { href: '/headers', lead: 'Paste the headers of the failing message into the ', anchor: 'email header analyzer', tail: ' to see which domain SPF actually passed for.' },
+  'dmarc-permanent-error-554-5-7-5': { href: '/', lead: 'Find the record that broke with the ', anchor: 'SPF, DKIM and DMARC checker', tail: ', or read a bounced message in the header analyzer.' },
+  'spf-dkim-dmarc-results': { href: '/headers', lead: 'Paste the headers of the message into the ', anchor: 'email header analyzer', tail: ' to see which row of the table it falls in, with the three domains compared for you.' },
+  'spf-too-many-dns-lookups': { href: '/tools/spf-lookup-counter', lead: 'Count yours with the ', anchor: 'SPF lookup counter', tail: ': it draws the whole include tree, marks where lookup 11 lands, and tests a draft record before you publish it.' },
+  'google-yahoo-sender-requirements': { href: '/tools/gmail-yahoo-compliance', lead: 'Run your domain through the ', anchor: 'Gmail and Yahoo compliance checker', tail: ' to see which of these requirements it already meets.' },
+};
+const DEFAULT_TOOL = { href: '/', lead: 'Run the ', anchor: 'SPF, DKIM and DMARC checker', tail: ' on your own domain to see which of this applies, with the record to publish.' };
+const tool = TOOL_BY_GUIDE[guide.id] ?? DEFAULT_TOOL;
+
+/**
+ * The trail these pages sit on: home, the guides hub, this guide. The bounce and tool
+ * guides in the sibling application have carried one since they were written; these did
+ * not, which left the only pages on the site whose place in the hierarchy was unstated.
+ */
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'notspoofed.com', item: absoluteUrl('/') },
+    { '@type': 'ListItem', position: 2, name: 'Guides', item: absoluteUrl('/guides') },
+    { '@type': 'ListItem', position: 3, name: guide.data.title, item: absoluteUrl(path) },
+  ],
+};
+
+const faqSchema = guide.data.faq && {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: guide.data.faq.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+
+/**
+ * Both dates, machine-readable and human-readable.
+ *
+ * The byline used to show one date labelled "Last checked" with no `<time>` element, so
+ * the page asserted `datePublished` and `dateModified` in its JSON-LD while showing a
+ * reader something different and showing a parser nothing at all. Structured data that
+ * a page does not corroborate is the kind search engines learn to discount.
+ */
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+const human = (d: Date) =>
+  d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+const published = guide.data.published;
+const updatedDate = guide.data.updated;
+const wasUpdated = iso(updatedDate) !== iso(published);
+---
+
+<Base
+  title={guide.data.titleTag ?? `${guide.data.title} — notspoofed.com`}
+  description={guide.data.description}
+  canonicalPath={path}
+>
+  {/* The same guide as plain markdown, for agents that would rather not parse HTML. */}
+  <link slot="head" rel="alternate" type="text/markdown" href={markdownUrl} />
+
+  {/* is:inline is explicit: these are JSON-LD data blocks, not code to be bundled.
+      Without it Astro infers the same thing but warns on every build. */}
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(articleSchema)} />
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumbSchema)} />
+  {faqSchema && (
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+  )}
+
+  <nav class="crumbs"><a href="/guides">Guides</a></nav>
+
+  <article>
+    <h1>{guide.data.title}</h1>
+    <p class="meta">
+      By <a href="/about#author" rel="author">Jose Pollman</a> · Published <time
+        datetime={iso(published)}>{human(published)}</time>{wasUpdated && (
+        <> · Updated <time datetime={iso(updatedDate)}>{human(updatedDate)}</time></>
+      )}
+    </p>
+    {guide.data.answer && <p class="lede">{guide.data.answer}</p>}
+    <Content />
+    <p class="tool-link">{tool.lead}<a href={tool.href}>{tool.anchor}</a>{tool.tail}</p>
+  </article>
+
+  <aside class="cta">
+    <h2>Check your own domain</h2>
+    <p>See exactly which of these applies to you, with the record to fix it.</p>
+    <DomainForm />
+  </aside>
+</Base>
+
+<style>
+  .crumbs { margin-bottom: 20px; font-size: 14px; }
+  .crumbs a { color: var(--muted); }
+
+  article :global(h2) { font-size: 21px; margin: 36px 0 12px; }
+  article :global(h3) { font-size: 17px; margin: 28px 0 8px; }
+  article :global(p),
+  article :global(li) { max-width: 68ch; }
+  article :global(p) { margin: 0 0 16px; }
+  article :global(ul), article :global(ol) { padding-left: 22px; }
+  article :global(li) { margin-bottom: 8px; }
+
+  article :global(pre) {
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+  article :global(code) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  article :global(pre code) { background: none; border: 0; padding: 0; }
+
+  article :global(blockquote) {
+    margin: 20px 0;
+    padding: 12px 16px;
+    border-left: 3px solid var(--warning);
+    background: var(--warning-soft);
+    border-radius: 0 8px 8px 0;
+  }
+  article :global(blockquote p:last-child) { margin-bottom: 0; }
+
+  article :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 15px;
+    display: block;
+    overflow-x: auto;
+  }
+  article :global(th), article :global(td) {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  article :global(th) { font-weight: 600; }
+  /* Wide tables (six columns or more) scroll inside their own box on a phone rather
+     than squeezing the prose columns to a word per line. The selector matches only the
+     last three cells of a row that has at least six, so narrower tables are untouched.
+     `width` is what sets the floor here: Chrome ignores min-width on cells in auto layout. */
+  article :global(tr > :nth-child(n + 4):nth-last-child(-n + 3)) { width: 22ch; min-width: 22ch; }
+  article :global(tr > :nth-child(-n + 3):nth-last-child(n + 4)) { white-space: nowrap; }
+
+  .meta { color: var(--muted); font-size: 14px; margin: -4px 0 28px; }
+
+  .cta {
+    margin-top: 56px;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .cta h2 { margin: 0 0 6px; font-size: 18px; }
+  .cta p { margin: 0 0 16px; color: var(--muted); }
+</style>

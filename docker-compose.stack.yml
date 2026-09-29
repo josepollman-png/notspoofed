@@ -43,6 +43,10 @@ services:
       # Umami's UI after the site is added there.
       UMAMI_URL: http://umami:3000
       UMAMI_WEBSITE_ID: ${MAILCHECK_UMAMI_WEBSITE_ID:-}
+      # The DMARC-monitoring affiliate line under a p=none / missing-rua result. Off
+      # unless ENABLED is exactly 1 AND the URL is an https link. See lib/affiliate.ts.
+      DMARC_AFFILIATE_ENABLED: ${MAILCHECK_DMARC_AFFILIATE_ENABLED:-0}
+      DMARC_AFFILIATE_URL: ${MAILCHECK_DMARC_AFFILIATE_URL:-}
     networks:
       - edge
       - backend

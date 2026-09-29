@@ -118,6 +118,14 @@ The tool performs outbound DNS on user-supplied input, so it is rate limited per
 capped on total queries, and bounded by a wall-clock deadline per request. Removing any
 of those turns it into a free DNS scanning proxy.
 
+**IndexNow.** `app/scripts/indexnow.mjs` (`npm run indexnow -- /guides/changed-page`)
+tells Bing, Yandex and the other IndexNow engines which URLs a deploy changed; with no
+arguments it submits the whole sitemap. Put your own key at `app/public/<key>.txt` (the
+file's name is its content — any 8–128 hex characters) and set `INDEXNOW_SITE_URL` in
+`.env` to your public origin. The script finds the key by that naming rule, checks that
+production actually serves it, and only then submits. The key in this repo is for
+notspoofed.com; replace it, since IndexNow validates the key against the submitting host.
+
 ## Layout
 
 | Path | What it does |

@@ -1,10 +1,12 @@
 ---
 title: "SPF: too many DNS lookups"
-description: "SPF allows ten DNS lookups. Go over and receivers ignore your record entirely. How to count them, and the three ways to get back under."
+titleTag: "SPF too many DNS lookups: fix the 10-lookup limit permerror"
+description: "Over SPF's 10-lookup limit, receivers return permerror and ignore your record. How to count lookups, including nested includes, and 3 ways to get under."
+answer: "SPF allows ten DNS-querying terms per evaluation (include, a, mx, ptr, exists and redirect), counted across every nested include. Go over and receivers return PermError and ignore your record entirely. Fix it by removing senders you no longer use, asking vendors for a narrower include, or carefully flattening one include into ip4 and ip6 ranges."
 question: "Why does my SPF record say too many DNS lookups?"
 category: "SPF"
 published: 2026-07-31
-updated: 2026-07-31
+updated: 2026-09-22
 order: 10
 faq:
   - q: "How many DNS lookups does SPF allow?"

@@ -10,9 +10,7 @@
         "@id": "https://notspoofed.com/about#author"
       },
       "publisher": {
-        "@type": "Organization",
-        "name": "notspoofed.com",
-        "url": "https://notspoofed.com"
+        "@id": "https://notspoofed.com/#organization"
       },
       "mainEntityOfPage": "https://notspoofed.com/research/yc-email-spoofing-study",
       "dateModified": "2026-09-03"
@@ -22,8 +20,7 @@
       "name": "YC company DMARC posture, August and September 2026",
       "description": "DMARC policy, SPF presence and MX status for 6,157 unique Y Combinator company domains, with batch and industry labels. Two full runs, August 14 and September 3, 2026, plus the list of every domain whose verdict changed between them.",
       "creator": {
-        "@type": "Organization",
-        "name": "notspoofed.com"
+        "@id": "https://notspoofed.com/#organization"
       },
       "datePublished": "2026-08-14",
       "license": "https://creativecommons.org/licenses/by/4.0/",

@@ -1,10 +1,12 @@
 ---
 title: "Setting up DMARC on Microsoft 365"
-description: "M365 signs your mail with onmicrosoft.com by default, which does not align with your own domain. Why DMARC still fails with DKIM switched on, and the fix."
+titleTag: "Microsoft 365 / Office 365 DMARC setup and the DKIM trap"
+description: "Microsoft 365 DMARC failing with DKIM on? Default signing uses onmicrosoft.com, which doesn't align. Enable DKIM for your domain, then publish the record."
+answer: "Enable DKIM signing for your custom domain in the Defender portal, because Microsoft 365 signs with yourtenant.onmicrosoft.com by default and that never aligns with your own domain. Publish SPF with include:spf.protection.outlook.com, then add v=DMARC1; p=none with a rua= address as a TXT record at _dmarc at your DNS host, not in the admin center."
 question: "How do I set up DMARC for Microsoft 365?"
 category: "Providers"
 published: 2026-08-14
-updated: 2026-08-14
+updated: 2026-09-22
 order: 24
 faq:
   - q: "DKIM is enabled in Microsoft 365 but DMARC still fails. Why?"
@@ -46,13 +48,13 @@ That publishes two CNAMEs (`selector1._domainkey` and `selector2._domainkey`) wh
 point back at Microsoft, and rotates keys for you. Until those exist and signing is
 switched on, you do not have aligned DKIM.
 
-→ [Why DMARC fails when SPF and DKIM pass](/guides/dmarc-fails-when-spf-passes/)
+→ [Why DMARC fails when SPF and DKIM pass](/guide/dmarc-fails-when-spf-passes)
 
 ## Order of operations
 
 1. **SPF** at the domain root: `v=spf1 include:spf.protection.outlook.com -all`. Add any
    other senders, and watch the ten-lookup limit.
-   → [SPF: too many DNS lookups](/guides/spf-too-many-dns-lookups/)
+   → [SPF: too many DNS lookups](/guide/spf-too-many-dns-lookups)
 2. **DKIM for the custom domain** — the step above. Not the default.
 3. **DMARC**, at your DNS host. There is no admin-centre control for this on custom
    domains, and no PowerShell cmdlet; Microsoft is explicit about that.
@@ -93,7 +95,7 @@ it is safe to move to `p=reject`.
 And if your `rua=` address is on a different domain from the one being monitored, that
 other domain has to authorise it with a `_report._dmarc` record, or every conforming
 receiver discards the reports silently.
-→ [Your DMARC reports may be going nowhere](/guides/dmarc-reports-not-arriving/)
+→ [Your DMARC reports may be going nowhere](/guide/dmarc-reports-not-arriving)
 
 ## Two more Microsoft-specific behaviours
 

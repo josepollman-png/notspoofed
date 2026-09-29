@@ -1,10 +1,12 @@
 ---
 title: "Someone is sending email as my domain"
-description: "Four different problems get called spoofing, and DMARC only fixes one of them. How to tell which one is happening to you before you change any DNS."
+titleTag: "Someone sending email from my domain? How to stop spoofing"
+description: "Spam sent from your domain, or bounces for mail you never sent? Tell spoofing from lookalikes and hacked accounts, then stop it with DMARC at p=reject."
+answer: "If the forged mail uses your exact domain in the From address, publish SPF and DKIM for every legitimate sender, add DMARC at p=none with a rua= address, read the reports for four to six weeks, then move to p=quarantine and p=reject. DMARC does not stop lookalike domains, display-name impersonation or a compromised account."
 question: "How do I stop someone sending email from my domain?"
 category: "Getting started"
 published: 2026-08-03
-updated: 2026-08-06
+updated: 2026-09-22
 order: 5
 faq:
   - q: "How do I stop someone sending email from my domain?"
@@ -133,7 +135,7 @@ receivers act on it.
 Not just your mailbox provider — the CRM, the invoicing system, the ticketing tool, the
 booking form. Each one needs to pass SPF **or** DKIM, and to pass it *aligned* with your
 domain. A vendor sending with their own envelope domain can pass SPF perfectly and still
-fail DMARC; that trap has [its own guide](/guides/dmarc-fails-when-spf-passes/).
+fail DMARC; that trap has [its own guide](/guide/dmarc-fails-when-spf-passes).
 
 **2. Publish DMARC at `p=none` with a reporting address.**
 
@@ -149,7 +151,7 @@ including the three internal systems you had forgotten about.
 Long enough for monthly and quarterly senders to appear, and to tell a forgery apart from
 [your own forwarded mail](#a-fifth-thing-and-it-isnt-an-attack). Then `p=quarantine`,
 then `p=reject`. The full sequence, including what to do with what the reports show you,
-is in [what DMARC p=none actually does](/guides/dmarc-p-none/).
+is in [what DMARC p=none actually does](/guide/dmarc-p-none).
 
 At `p=reject`, a forged message using your domain is refused by every major mailbox
 provider. That is the outcome you are after, and there is no shortcut to it that does

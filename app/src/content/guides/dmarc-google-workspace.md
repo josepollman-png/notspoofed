@@ -1,10 +1,12 @@
 ---
 title: "Setting up DMARC on Google Workspace"
-description: "The steps, plus the three places Google's own instructions cost you: a deprecated tag they still recommend, a report tag Gmail ignores, and the 48-hour wait."
+titleTag: "Google Workspace DMARC setup: the record and 3 traps to skip"
+description: "Set up DMARC for Google Workspace: the TXT record to publish at your DNS host, why to skip pct=, why Gmail sends no ruf reports, and the 48-hour wait."
+answer: "DMARC for Google Workspace is a TXT record you publish at your DNS host, not in the Admin console. Set up SPF and DKIM first, click Start authentication, wait 48 hours, then publish v=DMARC1; p=none; rua=mailto:dmarc@yourdomain at _dmarc. Read reports for two to four weeks before moving to quarantine and reject."
 question: "How do I set up DMARC for Google Workspace?"
 category: "Providers"
 published: 2026-08-14
-updated: 2026-08-14
+updated: 2026-09-22
 order: 22
 faq:
   - q: "Do I need SPF and DKIM before DMARC on Google Workspace?"
@@ -34,7 +36,7 @@ instruction with nothing to instruct on.
 1. **SPF** — one TXT record at the domain root including Google:
    `v=spf1 include:_spf.google.com ~all`. If you send through anything else as well,
    count your lookups; the limit is ten and it is easy to cross with two or three
-   services. → [SPF: too many DNS lookups](/guides/spf-too-many-dns-lookups/)
+   services. → [SPF: too many DNS lookups](/guide/spf-too-many-dns-lookups)
 2. **DKIM** — Admin console → Apps → Google Workspace → Gmail → Authenticate email.
    Generate the key, publish the TXT record it gives you, then come back and click
    **Start authentication**. Generating without starting is the step people miss.
@@ -81,7 +83,7 @@ p=reject      →  failures are refused
 
 That progression is understood identically everywhere. If you have an existing record
 carrying `pct=`, the checker flags it — see
-[what DMARC p=none actually does](/guides/dmarc-p-none/) for how long to sit at each
+[what DMARC p=none actually does](/guide/dmarc-p-none) for how long to sit at each
 stage.
 
 ## Trap 2: Gmail ignores `ruf` entirely
@@ -107,7 +109,7 @@ domain has to publish a record authorising it. Without it, the reports are silen
 discarded by every conforming receiver, and your record looks perfect while you receive
 nothing at all.
 
-→ [Your DMARC reports may be going nowhere](/guides/dmarc-reports-not-arriving/)
+→ [Your DMARC reports may be going nowhere](/guide/dmarc-reports-not-arriving)
 
 ## Subdomains
 
@@ -128,7 +130,7 @@ service — it inherits an enforcing policy it may not be able to satisfy.
 
 Since February 2024 Google requires DMARC from bulk senders, so for anyone sending in
 volume this stops at step 6, not step 4.
-→ [Google and Yahoo's sender requirements](/guides/google-yahoo-sender-requirements/)
+→ [Google and Yahoo's sender requirements](/guide/google-yahoo-sender-requirements)
 
 ---
 

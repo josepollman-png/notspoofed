@@ -29,7 +29,7 @@ const G = {
   pNone: { slug: 'dmarc-p-none', title: 'What DMARC p=none actually does' },
   alignment: { slug: 'dmarc-fails-when-spf-passes', title: 'Why DMARC fails when SPF and DKIM pass' },
   reports: { slug: 'dmarc-reports-not-arriving', title: 'Your DMARC reports may be going nowhere' },
-  bulk: { slug: 'google-yahoo-sender-requirements', title: "Google and Yahoo's sender requirements" },
+  bulk: { slug: 'google-yahoo-sender-requirements', title: 'Google and Yahoo sender requirements: a pass/fail checklist' },
   selectors: { slug: 'dkim-selectors', title: 'Finding your DKIM selector' },
   selectorList: { slug: 'dkim-selector-list', title: 'DKIM selectors by provider' },
 } as const satisfies Record<string, GuideLink>;
@@ -81,5 +81,5 @@ export function guideFor(id: FindingId): GuideLink | undefined {
 }
 
 export function guideHref(guide: GuideLink): string {
-  return `/guides/${guide.slug}/`;
+  return `/guide/${guide.slug}`;
 }

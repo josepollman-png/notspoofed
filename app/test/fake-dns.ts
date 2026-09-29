@@ -16,6 +16,7 @@ export interface Zone {
   A?: Record<string, string[]>;
   AAAA?: Record<string, string[]>;
   PTR?: Record<string, string[]>;
+  CNAME?: Record<string, string[]>;
 }
 
 export class FakeDns implements DnsBackend {
@@ -62,5 +63,8 @@ export class FakeDns implements DnsBackend {
   }
   ptr(name: string): Promise<Answer<string>> {
     return Promise.resolve(this.#lookup<string>('PTR', name));
+  }
+  cname(name: string): Promise<Answer<string>> {
+    return Promise.resolve(this.#lookup<string>('CNAME', name));
   }
 }

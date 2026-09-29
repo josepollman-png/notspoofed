@@ -1,0 +1,16 @@
+---
+/**
+ * An alias for the scan's canonical page, not a second copy of it.
+ *
+ * The study has been at /research/yc-email-spoofing-study since it was published and is
+ * the URL every existing link and citation points at. A second page describing the same
+ * 6,157-domain scan under a different slug would be the duplicate this site spent a
+ * migration removing — two URLs competing for one set of figures, with the citations
+ * split between them.
+ *
+ * So this alias exists only so the more descriptive slug resolves rather than 404s for
+ * anyone who was handed it. It is a permanent redirect, it is absent from the sitemap,
+ * and nothing links to it.
+ */
+return Astro.redirect('/research/yc-email-spoofing-study', 301);
+---

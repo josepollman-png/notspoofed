@@ -1,10 +1,12 @@
 ---
 title: "DKIM selectors by provider"
-description: "The DKIM selector each major provider uses — and which are unguessable by design."
+titleTag: "DKIM selector list by provider: Google, M365, Mailchimp, SES"
+description: "The DKIM selector each major provider uses (google, selector1, k1, s1), which were verified live, and which, like Amazon SES, can't be guessed."
+answer: "Google Workspace uses the selector google, Microsoft 365 uses selector1 and selector2, Mailchimp uses k1, SendGrid s1 and s2, and Zendesk zendesk1 and zendesk2. Amazon SES and SparkPost generate selectors no list can guess. The only certain method is the s= tag in the DKIM-Signature header of a message you sent."
 question: "What DKIM selector does my email provider use?"
 category: "DKIM"
 published: 2026-08-06
-updated: 2026-08-06
+updated: 2026-09-22
 order: 55
 faq:
   - q: "What DKIM selector does Google Workspace use?"
@@ -18,8 +20,10 @@ faq:
 ---
 
 Selectors cannot be listed from DNS. There is no query that returns "every selector on
-this domain" — [the reason is here](/guides/dkim-selectors/). Every checker, including
+this domain" — [the reason is here](/guide/dkim-selectors). Every checker, including
 ours, works from a list of common names and hopes.
+
+> **Find your selector.** The [DKIM selector finder](/tools/dkim-selector-finder) tests the selectors every major provider publishes for a domain, follows CNAME delegation to whoever holds the key, and reports key size, testing mode and revoked keys.
 
 This is that list, with an honest note about how reliable each entry is.
 
@@ -112,7 +116,7 @@ Two results that look like success but aren't:
 - **An answer on a selector you invented** — the domain has a wildcard record answering
   every name under `_domainkey`. Query a deliberately nonsensical selector first; if it
   also returns something, discard every result matching it.
-  [More on that trap](/guides/dkim-selectors/#the-trap-records-that-exist-but-are-not-dkim).
+  [More on that trap](/guide/dkim-selectors#the-trap-records-that-exist-but-are-not-dkim).
 
 ## Still not sure?
 

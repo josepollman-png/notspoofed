@@ -1,10 +1,12 @@
 ---
 title: "How to check if your domain can be spoofed"
-description: "Find out whether anyone can send email as your domain — in about two minutes, without sending a message. How to run the check and read all three results."
+titleTag: "Email spoofing check: can your domain be spoofed? Free test"
+description: "Find out if anyone can send email as your domain, free and without sending a message. How to read the SPF, DKIM and DMARC results, and what to fix."
+answer: "Your domain can be spoofed if its DMARC policy is missing or set to p=none, because receivers then deliver mail that fails authentication anyway. To check, run a read-only lookup of your SPF, DKIM and DMARC records: SPF under ten lookups, a DKIM key at your provider's selector, and DMARC at p=quarantine or p=reject."
 question: "How do I check if my domain can be spoofed?"
 category: "Getting started"
 published: 2026-08-14
-updated: 2026-08-14
+updated: 2026-09-22
 order: 8
 faq:
   - q: "Can I check whether my domain is spoofable without sending an email?"
@@ -60,12 +62,12 @@ receivers silently stop evaluating your record. No bounce, no warning; your SPF 
 stops existing. This is common on domains using several sending services at once
 (Google Workspace, Mailchimp and a CRM will get you close on their own). A good checker
 walks the whole chain and shows the count; this one generates a corrected record if you
-are over. → [SPF: too many DNS lookups](/guides/spf-too-many-dns-lookups/)
+are over. → [SPF: too many DNS lookups](/guide/spf-too-many-dns-lookups)
 
 **The ending.** `~all` (softfail) suggests receivers treat unlisted senders with
 suspicion; `-all` (hardfail) tells them to reject outright. With DMARC in place, `~all`
 is generally the right choice — but the record must end with one of them.
-→ [Should it end in ~all or -all?](/guides/spf-softfail-vs-hardfail/)
+→ [Should it end in ~all or -all?](/guide/spf-softfail-vs-hardfail)
 
 ## Step 3: Check DKIM, and distrust green ticks
 
@@ -74,7 +76,7 @@ selectors. Every checker guesses common ones. Two consequences follow:
 
 - **"DKIM not found" does not prove DKIM is absent.** Your provider may use a selector
   the tool never tried. Find the name in your provider's DNS setup instructions and
-  check it directly. → [Finding your DKIM selector](/guides/dkim-selectors/)
+  check it directly. → [Finding your DKIM selector](/guide/dkim-selectors)
 - **Worse, some domains answer *every* DNS query.** On those, a careless checker reports
   DKIM keys that do not exist. If a tool shows a green tick for a selector, it should
   have verified an actual signing key rather than the mere presence of an answer.
@@ -86,7 +88,7 @@ Look for three things.
 **The policy.** `p=none` means monitoring only — mail that fails authentication is still
 delivered. It is the right place to start and the wrong place to stop; a domain that
 stays on `p=none` forever is spoofable forever. The goal is `p=quarantine`, then
-`p=reject`. → [What DMARC p=none actually does](/guides/dmarc-p-none/)
+`p=reject`. → [What DMARC p=none actually does](/guide/dmarc-p-none)
 
 **Subdomain coverage.** Attackers who cannot spoof `yourdomain.com` will try
 `invoices.yourdomain.com`. Check how your policy applies to subdomains.
@@ -95,7 +97,7 @@ stays on `p=none` forever is spoofable forever. The goal is `p=quarantine`, then
 If they go to a third-party address, that party has to publish a record authorising it —
 otherwise your reports silently go nowhere, and the record looks flawless while you stay
 blind. Almost no checker tests this.
-→ [Your DMARC reports may be going nowhere](/guides/dmarc-reports-not-arriving/)
+→ [Your DMARC reports may be going nowhere](/guide/dmarc-reports-not-arriving)
 
 ## Step 5: Fix, wait, re-check
 
@@ -112,7 +114,7 @@ Then re-run the check.
 If a suspicious message arrives meanwhile, the [header analyzer](/headers) shows why it
 passed or failed DMARC — including the classic case where SPF passes but for the *wrong*
 domain, which is why most "we have SPF" domains still fail.
-→ [Why DMARC fails when SPF and DKIM pass](/guides/dmarc-fails-when-spf-passes/)
+→ [Why DMARC fails when SPF and DKIM pass](/guide/dmarc-fails-when-spf-passes)
 
 ## Why this stopped being optional
 
@@ -123,7 +125,7 @@ deliverability are now the same problem.
 
 Authentication is only three of the nine things they ask for. The
 [Gmail and Yahoo compliance checker](/tools/gmail-yahoo-compliance) runs the whole list.
-→ [Google and Yahoo's sender requirements](/guides/google-yahoo-sender-requirements/)
+→ [Google and Yahoo's sender requirements](/guide/google-yahoo-sender-requirements)
 
 ---
 

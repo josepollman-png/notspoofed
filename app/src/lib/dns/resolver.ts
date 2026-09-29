@@ -38,6 +38,13 @@ export interface DnsBackend {
   a(name: string): Promise<Answer<string>>;
   aaaa(name: string): Promise<Answer<string>>;
   ptr(name: string): Promise<Answer<string>>;
+  /**
+   * The CNAME at a name, if any. A TXT query already follows a CNAME to its target
+   * transparently — the resolver does that — so this is only asked *after* a hit, to
+   * report where the name pointed. That is how a DKIM selector gets attributed to the
+   * provider whose zone actually holds the key.
+   */
+  cname(name: string): Promise<Answer<string>>;
   /** Raw queries actually issued — abuse accounting, not RFC accounting. */
   readonly queryCount: number;
 }
@@ -173,5 +180,9 @@ export class DnsResolver implements DnsBackend {
 
   ptr(name: string): Promise<Answer<string>> {
     return this.#run('PTR', name, () => this.#resolver.resolvePtr(name));
+  }
+
+  cname(name: string): Promise<Answer<string>> {
+    return this.#run('CNAME', name, () => this.#resolver.resolveCname(name));
   }
 }

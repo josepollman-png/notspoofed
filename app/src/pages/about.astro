@@ -7,22 +7,15 @@ import { absoluteUrl } from '../lib/site.js';
 
 const contact = 'hello@notspoofed.com';
 
-/**
- * The Person every guide and research page names as its author, with a stable @id so
- * the references resolve to one node rather than a copy per page. Jose Pollman is the
- * byline the site publishes under.
+/*
+ * No Person node here any more.
+ *
+ * This page used to define its own, with its own `sameAs` list — a second definition of
+ * the node the base layout already emits on every page, under the same `@id`. Two
+ * definitions is two chances to drift, and they had: this copy's list omitted
+ * knowyourmouth.com after the shared one gained it. The layout's `siteGraph()` is now the
+ * only place the Person is described. See `lib/schema.ts`.
  */
-const authorSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Person',
-  '@id': absoluteUrl('/about#author'),
-  name: 'Jose Pollman',
-  url: absoluteUrl('/about#author'),
-  jobTitle: 'Builder and maintainer of notspoofed.com',
-  worksFor: { '@id': absoluteUrl('/#org') },
-  sameAs: ['https://github.com/josepollman-png'],
-  knowsAbout: ['SPF', 'DKIM', 'DMARC', 'email authentication', 'email deliverability', 'DNS'],
-};
 ---
 
 <Base
@@ -30,12 +23,37 @@ const authorSchema = {
   description="Who runs notspoofed.com, what it does and does not check, how to report a wrong result, and what it records about you."
   canonicalPath="/about"
 >
-  <script type="application/ld+json" is:inline set:html={JSON.stringify(authorSchema)} />
 
   <h1>About</h1>
   <p class="lede">
     A free set of email authentication tools, built because the existing free checkers
     tell you what is broken and stop there.
+  </p>
+
+  <h2>What we found when we measured it</h2>
+  <p>
+    In August 2026 we scanned every domain in the Y Combinator company directory —
+    <strong>6,157 domains</strong> — reading each one's public DNS records directly, and
+    repeated the whole scan on 3 September. <strong>60.5% of them can be email-spoofed
+    today</strong>: they publish no DMARC record, or one set to <code>p=none</code>,
+    which asks receivers to do nothing. Nearly a third are at <code>p=none</code>
+    specifically, which means somebody set DMARC up and stopped one setting short of the
+    one that protects them.
+  </p>
+  <p>
+    The finding we did not expect is that it has not improved. A company founded in 2025
+    is as likely to be spoofable as one founded in 2013, and the newest arrivals are
+    worse than the population they join. Enforcement is not something organisations grow
+    into; it happens when somebody decides to do it.
+  </p>
+  <p>
+    Both runs are published in full, with the method, the exclusions and every row we
+    corrected by hand: <a href="/research/yc-email-spoofing-study">the study</a>, and
+    <a href="/research/yc-dmarc-dataset">the raw CSVs under CC BY 4.0</a>. Failed lookups
+    are reported as unknown and excluded from the percentages rather than counted as
+    absent — that single distinction moved the headline figure by four and a half points,
+    which is roughly the size of the error in a scan that treats a DNS timeout as a
+    missing record.
   </p>
 
   <h2>Why it exists</h2>
@@ -193,6 +211,14 @@ const authorSchema = {
     product genuinely is the right answer — DMARC report monitoring, for instance — it
     says so plainly rather than steering you somewhere.
   </p>
+  <p id="affiliate-links">
+    That one case can carry an affiliate link. When a domain is at <code>p=none</code> or
+    publishes no report address, a single line under the DMARC result may point to a
+    monitoring service, labelled as an affiliate link in the text itself; if you sign up
+    through it, this site earns a commission. It never changes what the checker reports,
+    it is never more than one line per result, and it is a plain link — no tracking
+    script, pixel or redirect through this site.
+  </p>
   <p>
     The checks are built directly against the RFCs (7208 for SPF, 6376 for DKIM, 9989 and
     9990 for DMARC, 8461 for MTA-STS) and tested against a corpus of real domains whose
@@ -201,6 +227,24 @@ const authorSchema = {
     the Public Suffix List with a DNS tree walk — the checks follow it rather than the
     superseded RFC 7489.
   </p>
+
+  <h2>Written elsewhere</h2>
+  <p>
+    Two pieces that cover the reasoning behind the tools at more length than a results
+    page can:
+  </p>
+  <ul>
+    <li>
+      <a href="https://medium.com/@josepollman/how-to-check-if-your-domain-can-be-spoofed-spf-dkim-dmarc-166af3687f9f" rel="me noopener">
+        How to Check If Your Domain Can Be Spoofed (SPF, DKIM, DMARC)</a> — what each
+      record actually proves, and the order to fix them in.
+    </li>
+    <li>
+      <a href="https://medium.com/@josepollman/the-dmarc-check-that-only-asks-whether-a-record-parses-9e2dfcfe1d92" rel="me noopener">
+        The DMARC Check That Only Asks Whether a Record Parses</a> — why most free
+      checkers report a green tick for a record that protects nothing.
+    </li>
+  </ul>
 
   <h2>Contact</h2>
   <p>

@@ -1,10 +1,12 @@
 ---
 title: "What DMARC p=none actually does"
-description: "p=none collects reports and blocks nothing. It is the right place to start and the wrong place to stop. How to get to enforcement without losing mail."
+titleTag: "DMARC p=none: what it does, and why it doesn't stop spoofing"
+description: "v=DMARC1; p=none collects reports and blocks nothing, so forged mail is still delivered. How long to stay, and how to reach p=reject without losing mail."
+answer: "p=none tells receivers to take no action on mail that fails DMARC, so forged messages are still delivered; it only switches on reporting. Publish it with a rua= address, read the reports for four to six weeks, fix failing legitimate senders, then move to p=quarantine and finally p=reject. Stopping at p=none leaves you unprotected."
 question: "Does DMARC p=none protect my domain?"
 category: "DMARC"
 published: 2026-07-31
-updated: 2026-08-05
+updated: 2026-09-22
 order: 20
 faq:
   - q: "Does p=none stop email spoofing?"
@@ -52,7 +54,7 @@ Alignment is where this usually bites. It is not enough for a message to pass SP
 the domain that passed SPF must match the domain in the visible `From:` header. A
 vendor sending on your behalf with their own envelope domain can pass SPF perfectly
 and still fail DMARC. If that sounds like your situation, it has its own guide:
-[why DMARC fails when SPF and DKIM pass](/guides/dmarc-fails-when-spf-passes/).
+[why DMARC fails when SPF and DKIM pass](/guide/dmarc-fails-when-spf-passes).
 
 Go straight to `p=reject` and those systems stop being delivered immediately, with no
 bounce that anyone reads.

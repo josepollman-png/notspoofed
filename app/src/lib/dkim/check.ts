@@ -53,9 +53,9 @@ export interface DkimResult {
   missingUserSelectors: string[];
 }
 
-interface DkimTags { [tag: string]: string }
+export interface DkimTags { [tag: string]: string }
 
-function parseTags(raw: string): DkimTags {
+export function parseTags(raw: string): DkimTags {
   const tags: DkimTags = {};
   for (const part of raw.split(';')) {
     const eq = part.indexOf('=');

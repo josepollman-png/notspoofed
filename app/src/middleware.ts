@@ -8,7 +8,34 @@ import { campaignQuery, sendUmami } from './lib/umami.js';
  *  (which record themselves from the handler, where success is actually known). */
 const IGNORED = /^\/(_astro|_image|favicon|robots\.txt|sitemap\.xml|check|api\/check|stats|healthz)/;
 
+/**
+ * One URL per page: strip a trailing slash with a single 301.
+ *
+ * Astro's default `trailingSlash: 'ignore'` served `/about` and `/about/` — and every
+ * other page — as two live 200s. The canonical tag named one of them, but a canonical is
+ * a hint; two crawlable URLs per page is still two URLs splitting one page's signals.
+ * The Next app on this hostname already 308s the same shape, so this makes the two
+ * halves agree.
+ *
+ * `/guides/<slug>/` is deliberately left alone. Its route redirects straight to
+ * `/guide/<slug>` in one hop; stripping the slash here first would turn that into
+ * `/guides/x/` → `/guides/x` → `/guide/x`, a chain.
+ */
+function withoutTrailingSlash(pathname: string): string | null {
+  if (pathname === '/' || !pathname.endsWith('/')) return null;
+  if (/^\/guides\/[^/]+\/$/.test(pathname)) return null;
+  return pathname.replace(/\/+$/, '') || '/';
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
+  const stripped = withoutTrailingSlash(context.url.pathname);
+  if (stripped && (context.request.method === 'GET' || context.request.method === 'HEAD')) {
+    return new Response(null, {
+      status: 301,
+      headers: { Location: `${stripped}${context.url.search}` },
+    });
+  }
+
   const response = await next();
 
   // Only count successfully served HTML. Counting 404s and redirects would make

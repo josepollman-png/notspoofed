@@ -1,10 +1,12 @@
 ---
 title: "Finding your DKIM selector"
-description: "DKIM selectors cannot be listed from DNS. Why every checker is guessing, how to find yours anyway, and the trap that makes tools report keys that don't exist."
+titleTag: "Find your DKIM selector (Google, M365, SES) – free lookup"
+description: "DKIM selectors can't be listed from DNS, so every checker guesses. Get yours for certain from the s= tag of a sent message, then verify the key. Free tool."
+answer: "Send yourself a message, open the raw source (in Gmail, Show original) and read the DKIM-Signature header: the s= tag is your selector and d= is the signing domain. Your provider's console shows it too. You cannot list selectors from DNS, so a checker reporting no DKIM found may simply not have guessed yours."
 question: "How do I find my DKIM selector?"
 category: "DKIM"
 published: 2026-07-31
-updated: 2026-07-31
+updated: 2026-09-22
 order: 50
 faq:
   - q: "How do I find my DKIM selector?"
@@ -17,6 +19,8 @@ faq:
 
 Almost every other DNS record can be looked up. You ask for the SPF record and you get
 it. You ask for `_dmarc` and it is there.
+
+> **Find your selector.** The [DKIM selector finder](/tools/dkim-selector-finder) tests the selectors every major provider publishes for a domain, follows CNAME delegation to whoever holds the key, and reports key size, testing mode and revoked keys.
 
 DKIM does not work that way, and it changes how you have to approach it.
 
@@ -46,7 +50,7 @@ ever find them. A domain signing perfectly with SES will show as "no DKIM" on ev
 guessing tool, forever.
 
 > **Looking for the selector your provider uses?**
-> [DKIM selectors by provider](/guides/dkim-selector-list/) lists the known selector for
+> [DKIM selectors by provider](/guide/dkim-selector-list) lists the known selector for
 > each major platform, marked according to whether it was verified against a live domain
 > or only documented — plus the providers whose selectors cannot be guessed at all.
 

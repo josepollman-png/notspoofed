@@ -49,6 +49,7 @@ Checked before queueing anything. Two of the obvious error-page targets are done
 | "what does p=none do" | `dmarc-p-none` |
 | "~all vs -all" | `spf-softfail-vs-hardfail` |
 | "DMARC reports not arriving" | `dmarc-reports-not-arriving` |
+| "spf pass dkim fail dmarc pass" and other result combinations, compauth, bestguesspass | `spf-dkim-dmarc-results` (the hub; the per-case detail stays in the three pass/fail guides) |
 
 For `permerror` specifically the fix is a **section and an FAQ entry inside the existing
 page**, not a new page — the query is a synonym, and two pages competing for it is worse

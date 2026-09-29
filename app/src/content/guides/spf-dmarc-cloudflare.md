@@ -1,10 +1,12 @@
 ---
 title: "SPF, DKIM and DMARC on Cloudflare DNS"
-description: "Cloudflare hosts your DNS, it does not send your mail. The orange cloud, the inbound-only Email Routing trap, and what DMARC Management changes in your record."
+titleTag: "Cloudflare SPF, DKIM and DMARC records: setup and pitfalls"
+description: "Add SPF, DKIM and DMARC at Cloudflare DNS without breaking mail: the orange-cloud SPF trap, inbound-only Email Routing, and the doubled _dmarc name."
+answer: "Cloudflare hosts your DNS; it does not send your mail. Publish the SPF include and DKIM records your actual sender gives you, plus a TXT record named _dmarc, under DNS → Records. Enter names without your domain, since Cloudflare appends it, keep exactly one SPF record, and remember Email Routing only handles inbound mail."
 question: "How do I set up SPF, DKIM and DMARC on Cloudflare?"
 category: "Providers"
 published: 2026-08-14
-updated: 2026-08-14
+updated: 2026-09-22
 order: 26
 faq:
   - q: "Does the orange cloud break my email?"
@@ -89,7 +91,7 @@ at `p=none`, because that is the safe default for collecting data. `p=none` bloc
 nothing. It is the right place to start and the wrong place to stop, and a domain that
 sits there indefinitely is spoofable indefinitely.
 
-→ [What DMARC p=none actually does](/guides/dmarc-p-none/)
+→ [What DMARC p=none actually does](/guide/dmarc-p-none)
 
 ## Publishing the records in the dashboard
 

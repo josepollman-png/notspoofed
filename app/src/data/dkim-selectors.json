@@ -1,0 +1,1749 @@
+{
+  "version": "2026-09-09",
+  "description": "Selectors the DKIM selector finder tries, in order. Providers are attribution hints, not proof: a selector name is chosen by whoever configured signing. Random selectors (Amazon SES Easy DKIM, HubSpot hs1-<id>, Zoho numeric, custom Google) cannot be listed and are attributed from the CNAME target instead.",
+  "selectors": [
+    {
+      "selector": "google",
+      "providers": [
+        "Google Workspace"
+      ],
+      "note": "Every Google Workspace tenant; custom selectors are possible but rare."
+    },
+    {
+      "selector": "selector1",
+      "providers": [
+        "Microsoft 365"
+      ],
+      "note": "CNAME to selector1-<domain-guid>._domainkey.<tenant>.onmicrosoft.com."
+    },
+    {
+      "selector": "selector2",
+      "providers": [
+        "Microsoft 365"
+      ],
+      "note": "The rotation partner of selector1; only one may resolve mid-rotation."
+    },
+    {
+      "selector": "cf2024-1",
+      "providers": [
+        "Cloudflare Email Routing"
+      ],
+      "note": "Published for every Email Routing domain."
+    },
+    {
+      "selector": "k1",
+      "providers": [
+        "Mailchimp",
+        "Mandrill",
+        "Mailgun"
+      ],
+      "note": "Mailchimp's default; also seen on Mandrill and Mailgun."
+    },
+    {
+      "selector": "k2",
+      "providers": [
+        "Mailchimp",
+        "Mandrill"
+      ]
+    },
+    {
+      "selector": "k3",
+      "providers": [
+        "Mailchimp",
+        "Mandrill"
+      ]
+    },
+    {
+      "selector": "s1",
+      "providers": [
+        "SendGrid",
+        "SendGrid Marketing",
+        "Salesforce"
+      ],
+      "note": "SendGrid's authenticated-domain pair; CNAME to s1.domainkey.<id>.wl.sendgrid.net."
+    },
+    {
+      "selector": "s2",
+      "providers": [
+        "SendGrid"
+      ]
+    },
+    {
+      "selector": "smtpapi",
+      "providers": [
+        "SendGrid"
+      ],
+      "note": "Legacy shared-domain selector."
+    },
+    {
+      "selector": "mandrill",
+      "providers": [
+        "Mandrill"
+      ]
+    },
+    {
+      "selector": "mte1",
+      "providers": [
+        "Mandrill"
+      ]
+    },
+    {
+      "selector": "mte2",
+      "providers": [
+        "Mandrill"
+      ]
+    },
+    {
+      "selector": "mailo",
+      "providers": [
+        "Mailgun"
+      ],
+      "note": "Mailgun's default selector name."
+    },
+    {
+      "selector": "mg",
+      "providers": [
+        "Mailgun"
+      ]
+    },
+    {
+      "selector": "mailgun",
+      "providers": [
+        "Mailgun"
+      ]
+    },
+    {
+      "selector": "pic",
+      "providers": [
+        "Mailgun"
+      ]
+    },
+    {
+      "selector": "krs",
+      "providers": [
+        "Mailgun"
+      ]
+    },
+    {
+      "selector": "pm",
+      "providers": [
+        "Postmark"
+      ],
+      "note": "CNAME to pm.mtasv.net."
+    },
+    {
+      "selector": "20150623",
+      "providers": [
+        "Postmark"
+      ],
+      "note": "Older Postmark accounts."
+    },
+    {
+      "selector": "hs1",
+      "providers": [
+        "HubSpot"
+      ],
+      "note": "Newer HubSpot domains use hs1-<hubid>, which cannot be guessed."
+    },
+    {
+      "selector": "hs2",
+      "providers": [
+        "HubSpot"
+      ]
+    },
+    {
+      "selector": "zendesk1",
+      "providers": [
+        "Zendesk"
+      ]
+    },
+    {
+      "selector": "zendesk2",
+      "providers": [
+        "Zendesk"
+      ]
+    },
+    {
+      "selector": "zoho",
+      "providers": [
+        "Zoho Mail"
+      ]
+    },
+    {
+      "selector": "zmail",
+      "providers": [
+        "Zoho Mail"
+      ],
+      "note": "Zoho's older default; newer accounts use a numeric selector that cannot be guessed."
+    },
+    {
+      "selector": "fm1",
+      "providers": [
+        "Fastmail"
+      ]
+    },
+    {
+      "selector": "fm2",
+      "providers": [
+        "Fastmail"
+      ]
+    },
+    {
+      "selector": "fm3",
+      "providers": [
+        "Fastmail"
+      ]
+    },
+    {
+      "selector": "mesmtp",
+      "providers": [
+        "Fastmail"
+      ]
+    },
+    {
+      "selector": "protonmail",
+      "providers": [
+        "Proton Mail"
+      ]
+    },
+    {
+      "selector": "protonmail2",
+      "providers": [
+        "Proton Mail"
+      ]
+    },
+    {
+      "selector": "protonmail3",
+      "providers": [
+        "Proton Mail"
+      ]
+    },
+    {
+      "selector": "titan1",
+      "providers": [
+        "Titan Mail"
+      ]
+    },
+    {
+      "selector": "klaviyo",
+      "providers": [
+        "Klaviyo"
+      ]
+    },
+    {
+      "selector": "kl",
+      "providers": [
+        "Klaviyo"
+      ]
+    },
+    {
+      "selector": "kl2",
+      "providers": [
+        "Klaviyo"
+      ]
+    },
+    {
+      "selector": "mailjet",
+      "providers": [
+        "Mailjet"
+      ]
+    },
+    {
+      "selector": "sendinblue",
+      "providers": [
+        "Brevo"
+      ]
+    },
+    {
+      "selector": "brevo",
+      "providers": [
+        "Brevo"
+      ]
+    },
+    {
+      "selector": "ctct1",
+      "providers": [
+        "Constant Contact"
+      ]
+    },
+    {
+      "selector": "ctct2",
+      "providers": [
+        "Constant Contact"
+      ]
+    },
+    {
+      "selector": "cc",
+      "providers": [
+        "Constant Contact"
+      ]
+    },
+    {
+      "selector": "constantcontact",
+      "providers": [
+        "Constant Contact"
+      ]
+    },
+    {
+      "selector": "cm",
+      "providers": [
+        "Campaign Monitor"
+      ]
+    },
+    {
+      "selector": "cm1",
+      "providers": [
+        "Campaign Monitor"
+      ]
+    },
+    {
+      "selector": "cm2",
+      "providers": [
+        "Campaign Monitor"
+      ]
+    },
+    {
+      "selector": "dk",
+      "providers": [
+        "ActiveCampaign"
+      ]
+    },
+    {
+      "selector": "ac",
+      "providers": [
+        "ActiveCampaign"
+      ]
+    },
+    {
+      "selector": "activecampaign",
+      "providers": [
+        "ActiveCampaign"
+      ]
+    },
+    {
+      "selector": "ck",
+      "providers": [
+        "Kit (ConvertKit)"
+      ]
+    },
+    {
+      "selector": "convertkit",
+      "providers": [
+        "Kit (ConvertKit)"
+      ]
+    },
+    {
+      "selector": "kit",
+      "providers": [
+        "Kit (ConvertKit)"
+      ]
+    },
+    {
+      "selector": "drip",
+      "providers": [
+        "Drip"
+      ]
+    },
+    {
+      "selector": "cio",
+      "providers": [
+        "Customer.io"
+      ]
+    },
+    {
+      "selector": "customerio",
+      "providers": [
+        "Customer.io"
+      ]
+    },
+    {
+      "selector": "iterable",
+      "providers": [
+        "Iterable"
+      ]
+    },
+    {
+      "selector": "it",
+      "providers": [
+        "Iterable"
+      ]
+    },
+    {
+      "selector": "braze",
+      "providers": [
+        "Braze"
+      ]
+    },
+    {
+      "selector": "everlytickey1",
+      "providers": [
+        "Everlytic"
+      ]
+    },
+    {
+      "selector": "everlytickey2",
+      "providers": [
+        "Everlytic"
+      ]
+    },
+    {
+      "selector": "scph0316",
+      "providers": [
+        "SparkPost"
+      ],
+      "note": "SparkPost stamps scph + MMYY at signing setup; only a few dates are guessable."
+    },
+    {
+      "selector": "scph0325",
+      "providers": [
+        "SparkPost"
+      ]
+    },
+    {
+      "selector": "scph1224",
+      "providers": [
+        "SparkPost"
+      ]
+    },
+    {
+      "selector": "fd",
+      "providers": [
+        "Freshworks"
+      ]
+    },
+    {
+      "selector": "fd1",
+      "providers": [
+        "Freshworks"
+      ]
+    },
+    {
+      "selector": "fd2",
+      "providers": [
+        "Freshworks"
+      ]
+    },
+    {
+      "selector": "freshdesk",
+      "providers": [
+        "Freshworks"
+      ]
+    },
+    {
+      "selector": "fw",
+      "providers": [
+        "Freshworks"
+      ]
+    },
+    {
+      "selector": "intercom",
+      "providers": [
+        "Intercom"
+      ]
+    },
+    {
+      "selector": "ic",
+      "providers": [
+        "Intercom"
+      ]
+    },
+    {
+      "selector": "front",
+      "providers": [
+        "Front"
+      ]
+    },
+    {
+      "selector": "frontapp",
+      "providers": [
+        "Front"
+      ]
+    },
+    {
+      "selector": "salesforce",
+      "providers": [
+        "Salesforce"
+      ]
+    },
+    {
+      "selector": "sfdc",
+      "providers": [
+        "Salesforce"
+      ]
+    },
+    {
+      "selector": "mc",
+      "providers": [
+        "Salesforce Marketing Cloud"
+      ]
+    },
+    {
+      "selector": "mc1",
+      "providers": [
+        "Salesforce Marketing Cloud",
+        "Mimecast"
+      ]
+    },
+    {
+      "selector": "mc2",
+      "providers": [
+        "Salesforce Marketing Cloud"
+      ]
+    },
+    {
+      "selector": "pardot",
+      "providers": [
+        "Salesforce Pardot"
+      ]
+    },
+    {
+      "selector": "m1",
+      "providers": [
+        "Mandrill",
+        "Marketo"
+      ]
+    },
+    {
+      "selector": "marketo",
+      "providers": [
+        "Marketo"
+      ]
+    },
+    {
+      "selector": "mkto",
+      "providers": [
+        "Marketo"
+      ]
+    },
+    {
+      "selector": "eloqua",
+      "providers": [
+        "Oracle Eloqua"
+      ]
+    },
+    {
+      "selector": "elq",
+      "providers": [
+        "Oracle Eloqua"
+      ]
+    },
+    {
+      "selector": "responsys",
+      "providers": [
+        "Oracle Responsys"
+      ]
+    },
+    {
+      "selector": "oracle",
+      "providers": [
+        "Oracle"
+      ]
+    },
+    {
+      "selector": "adobe",
+      "providers": [
+        "Adobe Campaign"
+      ]
+    },
+    {
+      "selector": "ac1",
+      "providers": [
+        "Adobe Campaign"
+      ]
+    },
+    {
+      "selector": "acoustic",
+      "providers": [
+        "Acoustic"
+      ]
+    },
+    {
+      "selector": "ibm",
+      "providers": [
+        "Acoustic (formerly IBM Watson Campaign)"
+      ]
+    },
+    {
+      "selector": "msdyn",
+      "providers": [
+        "Dynamics 365"
+      ]
+    },
+    {
+      "selector": "dynamics",
+      "providers": [
+        "Dynamics 365"
+      ]
+    },
+    {
+      "selector": "sailthru",
+      "providers": [
+        "Sailthru"
+      ]
+    },
+    {
+      "selector": "st",
+      "providers": [
+        "Sailthru"
+      ]
+    },
+    {
+      "selector": "ongage",
+      "providers": [
+        "Ongage"
+      ]
+    },
+    {
+      "selector": "sendlane",
+      "providers": [
+        "Sendlane"
+      ]
+    },
+    {
+      "selector": "e2ma",
+      "providers": [
+        "Emma"
+      ]
+    },
+    {
+      "selector": "ml",
+      "providers": [
+        "MailerLite"
+      ]
+    },
+    {
+      "selector": "mailerlite",
+      "providers": [
+        "MailerLite"
+      ]
+    },
+    {
+      "selector": "litesrv",
+      "providers": [
+        "MailerLite"
+      ]
+    },
+    {
+      "selector": "moosend",
+      "providers": [
+        "Moosend"
+      ]
+    },
+    {
+      "selector": "omnisend",
+      "providers": [
+        "Omnisend"
+      ]
+    },
+    {
+      "selector": "om",
+      "providers": [
+        "Omnisend"
+      ]
+    },
+    {
+      "selector": "smtp2go",
+      "providers": [
+        "SMTP2GO"
+      ]
+    },
+    {
+      "selector": "s2g",
+      "providers": [
+        "SMTP2GO"
+      ]
+    },
+    {
+      "selector": "em",
+      "providers": [
+        "SMTP2GO"
+      ]
+    },
+    {
+      "selector": "api",
+      "providers": [
+        "Elastic Email"
+      ]
+    },
+    {
+      "selector": "elasticemail",
+      "providers": [
+        "Elastic Email"
+      ]
+    },
+    {
+      "selector": "sendy",
+      "providers": [
+        "Sendy"
+      ]
+    },
+    {
+      "selector": "ses",
+      "providers": [
+        "Amazon SES (BYODKIM)"
+      ],
+      "note": "Easy DKIM selectors are random tokens; only bring-your-own-DKIM setups use a chosen name."
+    },
+    {
+      "selector": "amazonses",
+      "providers": [
+        "Amazon SES (BYODKIM)"
+      ]
+    },
+    {
+      "selector": "mimecast",
+      "providers": [
+        "Mimecast"
+      ]
+    },
+    {
+      "selector": "pp",
+      "providers": [
+        "Proofpoint"
+      ]
+    },
+    {
+      "selector": "proofpoint",
+      "providers": [
+        "Proofpoint"
+      ]
+    },
+    {
+      "selector": "barracuda",
+      "providers": [
+        "Barracuda"
+      ]
+    },
+    {
+      "selector": "bc",
+      "providers": [
+        "Barracuda"
+      ]
+    },
+    {
+      "selector": "squarespace",
+      "providers": [
+        "Squarespace"
+      ]
+    },
+    {
+      "selector": "shopify",
+      "providers": [
+        "Shopify"
+      ]
+    },
+    {
+      "selector": "shop",
+      "providers": [
+        "Shopify"
+      ]
+    },
+    {
+      "selector": "shopifyemail",
+      "providers": [
+        "Shopify Email"
+      ]
+    },
+    {
+      "selector": "wp",
+      "providers": [
+        "WordPress.com / Jetpack"
+      ]
+    },
+    {
+      "selector": "wordpress",
+      "providers": [
+        "WordPress.com / Jetpack"
+      ]
+    },
+    {
+      "selector": "atlassian",
+      "providers": [
+        "Atlassian"
+      ]
+    },
+    {
+      "selector": "jira",
+      "providers": [
+        "Atlassian Jira"
+      ]
+    },
+    {
+      "selector": "slack",
+      "providers": [
+        "Slack"
+      ]
+    },
+    {
+      "selector": "github",
+      "providers": [
+        "GitHub"
+      ]
+    },
+    {
+      "selector": "pf2014",
+      "providers": [
+        "GitHub"
+      ],
+      "note": "Historic GitHub selector."
+    },
+    {
+      "selector": "stripe",
+      "providers": [
+        "Stripe"
+      ]
+    },
+    {
+      "selector": "zapier",
+      "providers": [
+        "Zapier"
+      ]
+    },
+    {
+      "selector": "twilio",
+      "providers": [
+        "Twilio"
+      ]
+    },
+    {
+      "selector": "godaddy",
+      "providers": [
+        "GoDaddy"
+      ]
+    },
+    {
+      "selector": "emailsrvr",
+      "providers": [
+        "Rackspace"
+      ]
+    },
+    {
+      "selector": "rackspace",
+      "providers": [
+        "Rackspace"
+      ]
+    },
+    {
+      "selector": "sig1",
+      "providers": [
+        "Apple iCloud+ custom domains"
+      ]
+    },
+    {
+      "selector": "icloud",
+      "providers": [
+        "Apple iCloud"
+      ]
+    },
+    {
+      "selector": "s1024",
+      "providers": [
+        "Yahoo",
+        "AOL"
+      ]
+    },
+    {
+      "selector": "s2048",
+      "providers": [
+        "Yahoo",
+        "AOL"
+      ]
+    },
+    {
+      "selector": "yahoo",
+      "providers": [
+        "Yahoo"
+      ]
+    },
+    {
+      "selector": "opendkim",
+      "providers": [
+        "OpenDKIM"
+      ]
+    },
+    {
+      "selector": "turbo-smtp",
+      "providers": [
+        "TurboSMTP"
+      ]
+    },
+    {
+      "selector": "bf1",
+      "providers": [
+        "generic"
+      ]
+    },
+    {
+      "selector": "bf2",
+      "providers": [
+        "generic"
+      ]
+    },
+    {
+      "selector": "20161025",
+      "providers": [
+        "Google (historic dated selector)"
+      ]
+    },
+    {
+      "selector": "20210112",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "default",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "dkim",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "mail",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "email",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "smtp",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "mx",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "key1",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "key2",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "key3",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "s3",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "sel1",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "sel2",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "sel3",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "selector",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "selector3",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "dkim1",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "dkim2",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "dkim3",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "dk1",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "dk2",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "x",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "a",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "b",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "main",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "primary",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "secondary",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "prod",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "production",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "test",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "staging",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "rsa",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "rsa1",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "rsa2",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "ed25519",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "mailer",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "mx1",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "mx2",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "smtp1",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "smtp2",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "srv",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "server",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "relay",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "outbound",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "bulk",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "marketing",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "newsletter",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "news",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "notify",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "notifications",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "noreply",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "transactional",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "txn",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "support",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "sales",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "info",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "postfix",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "exim",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "sendmail",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "cpanel",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "plesk",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "1",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "2",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "3",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "01",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "02",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "03",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "s",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "d",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "k",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "m",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "e",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "sig",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "signing",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "signer",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "key",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "public",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "pub",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "domainkey",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "auth",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "dkimkey",
+      "providers": [
+        "generic"
+      ],
+      "note": "A hand-chosen or installer-default name: cPanel and OpenDKIM default to `default`, Plesk to `dkim`."
+    },
+    {
+      "selector": "2022",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "dkim2022",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "s2022",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "k2022",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "2023",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "dkim2023",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "s2023",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "k2023",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "2024",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "dkim2024",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "s2024",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "k2024",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "dkim2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "s2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "k2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "dkim2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "s2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "k2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "jan2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "jan2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "feb2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "feb2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "mar2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "mar2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "apr2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "apr2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "may2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "may2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "jun2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "jun2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "jul2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "jul2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "aug2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "aug2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "sep2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "sep2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "oct2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "oct2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "nov2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "nov2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "dec2025",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "dec2026",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "202401",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "202407",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "202501",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "202507",
+      "providers": [
+        "generic dated selector"
+      ]
+    },
+    {
+      "selector": "202601",
+      "providers": [
+        "generic dated selector"
+      ]
+    }
+  ]
+}

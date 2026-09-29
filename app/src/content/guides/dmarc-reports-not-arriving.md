@@ -1,10 +1,12 @@
 ---
 title: "Your DMARC reports may be going nowhere"
-description: "A DMARC record can look flawless and still deliver you no reports at all. Two failure modes that leave you blind, and how to check for both."
+titleTag: "Not receiving DMARC reports? Two causes and how to fix them"
+description: "A valid DMARC record can still deliver zero reports: an external rua address that hasn't authorised you, or a reporting domain with no MX. Check both."
+answer: "Usually one of two DNS problems. If your rua= address is on another domain, that domain must publish a v=DMARC1 TXT record at yourdomain._report._dmarc.theirdomain, or conforming reporters send nothing, which is why a Gmail address never works. If rua= points at your own domain, it needs an MX record, or every report bounces."
 question: "Why am I not receiving DMARC reports?"
 category: "DMARC"
 published: 2026-07-31
-updated: 2026-08-05
+updated: 2026-09-22
 order: 30
 faq:
   - q: "Why am I not getting DMARC aggregate reports?"

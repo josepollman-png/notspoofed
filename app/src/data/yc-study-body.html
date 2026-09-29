@@ -152,3 +152,29 @@
     <p><strong>Changes between runs were verified, not assumed.</strong> Every domain whose verdict differed between the August 14 and September 3 runs was re-queried against Cloudflare and Google. Where the two disagreed — a record mid-propagation — the domain's authoritative nameserver was queried directly and its answer used. One domain was corrected that way, from the <code>p=reject</code> the scan saw to the <code>p=none</code> its nameserver publishes; the correction is itemised in the audit trail. The comparison is restricted to domains conclusively classified in both runs, so companies added to or removed from the directory in between are reported separately rather than folded into the change figures.</p>
     <p>All checks are passive public-DNS reads. No email was sent, and no domain was actually spoofed. Data collected August 14 and September 3, 2026; DNS records change over time, and we'd expect some of the specific companies named here to be at enforcement by the time you read this. The <a href="/research/yc-dmarc-dataset">raw dataset</a> for both runs is available for download under CC BY 4.0, alongside the full audit trail of every row changed, repaired or excluded.</p>
   </footer>
+  <section id="cite" class="cite">
+    <h2>How to cite this</h2>
+    <p>
+      The figures on this page are free to quote, with attribution and a link. The
+      underlying rows are published under CC BY 4.0, so a claim made from them can be
+      checked rather than taken on trust — which is the only reason a statistic from a
+      small site is worth anything.
+    </p>
+    <p><strong>Suggested citation</strong></p>
+    <blockquote class="citation">
+      notspoofed.com, <em>DMARC adoption across 6,157 Y Combinator company domains</em>
+      (September 2026). https://notspoofed.com/research/yc-email-spoofing-study
+    </blockquote>
+    <p>
+      <strong>The headline figure, stated once:</strong> 60.5% of 6,157 Y Combinator
+      company domains could be email-spoofed as of 3 September 2026 — they published no
+      DMARC record, or a policy of <code>p=none</code>. 6,049 domains were conclusively
+      classified; 98 did not resolve and are excluded from every percentage rather than
+      counted either way.
+    </p>
+    <p>
+      Writing something from this and need a cut we have not published, or the scanner
+      source? <a href="/about">Ask</a> — we will run it.
+    </p>
+  </section>
+

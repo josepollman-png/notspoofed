@@ -1,9 +1,14 @@
 ---
 import type { Finding } from '../lib/findings.js';
+import type { AffiliateLink } from '../lib/affiliate.js';
 import { guideFor, guideHref } from '../lib/guide-links.js';
 
-interface Props { finding: Finding }
-const { finding } = Astro.props;
+interface Props {
+  finding: Finding;
+  /** Set on at most one card per result — see lib/affiliate.ts. */
+  affiliate?: AffiliateLink | null;
+}
+const { finding, affiliate = null } = Astro.props;
 
 const guide = guideFor(finding.id);
 
@@ -46,6 +51,14 @@ const LABEL: Record<Finding['severity'], string> = {
         {finding.fix.steps.map((step) => <li>{step}</li>)}
       </ol>
     </div>
+  )}
+
+  {affiliate && (
+    <p class="affiliate">
+      Want these reports read for you? We don&rsquo;t do monitoring —{' '}
+      <a href={affiliate.url} rel="sponsored noopener">EasyDMARC</a> does.
+      (affiliate link — we earn a commission)
+    </p>
   )}
 
   {/* Last, so it never pushes the copyable record further down the card. */}
