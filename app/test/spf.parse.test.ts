@@ -103,7 +103,9 @@ describe('macros', () => {
 describe('authoring mistakes worth reporting', () => {
   it('reports terms stranded after all', () => {
     const r = parseSpf('v=spf1 -all include:late.example.com');
-    expect(r.errors.join(' ')).toMatch(/never evaluated/);
+    expect(r.warnings.join(' ')).toMatch(/never evaluated/);
+    // Legal — receivers stop at all and never reach them — so not a permerror.
+    expect(r.errors).toEqual([]);
   });
 
   it('does not treat a trailing exp= as stranded', () => {

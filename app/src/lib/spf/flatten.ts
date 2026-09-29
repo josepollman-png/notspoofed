@@ -101,7 +101,12 @@ function collapseV4(entries: readonly string[]): string[] {
 export function subtreeCost(node: SpfNode | null): number {
   if (!node?.parsed) return 0;
   let cost = 0;
-  for (const term of node.parsed.terms) if (term.costsLookup) cost++;
+  // Charged terms only: a redirect= beside an all is ignored (RFC 7208 §6.1) and the
+  // evaluator does not count it, so neither does the saving from flattening it.
+  const hasAll = node.parsed.terms.some((t) => t.name === 'all' && t.kind === 'mechanism');
+  for (const term of node.parsed.terms) {
+    if (term.costsLookup && !(term.name === 'redirect' && hasAll)) cost++;
+  }
   for (const child of node.children) cost += subtreeCost(child.node);
   return cost;
 }

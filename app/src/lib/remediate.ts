@@ -214,6 +214,59 @@ function spfFindings({ domain, spf, flatten }: CheckInput): Finding[] {
   }
 
   for (const p of spf.problems) {
+    const where = p.domain === domain ? '' : ` (in the record for ${p.domain})`;
+
+    // A syntax error is a permerror for the whole record (RFC 7208 §4.6): receivers
+    // stop before evaluating anything, so every sender listed fails SPF alike.
+    if (p.code === 'syntax') {
+      out.push({
+        id: 'spf-syntax',
+        severity: 'critical',
+        title: p.term ? `SPF permerror: malformed term ${p.term}` : 'SPF permerror: syntax error',
+        detail:
+          `${p.message}${where}. A syntax error makes the whole SPF check a permerror ` +
+          '(RFC 7208 §4.6): receivers that follow the spec stop there and treat the ' +
+          'record as broken, so none of the senders it lists pass SPF.' +
+          (p.suggestion
+            ? ' It looks like two terms with the space between them missing — often a ' +
+              'record split into several TXT strings, which join with nothing between them.'
+            : ''),
+        fix: p.suggestion && p.term && p.domain === domain && spf.record
+          ? {
+              kind: 'record',
+              host: domain,
+              type: 'TXT',
+              value: spf.record.replace(p.term, p.suggestion),
+              caveat:
+                `Replaces ${p.term} with ${p.suggestion}. If your DNS host shows the record ` +
+                'as several quoted strings, end each string with a space, or start the next ' +
+                'one with one.',
+            }
+          : undefined,
+      });
+      continue;
+    }
+
+    if (p.code === 'no-record' && p.domain !== domain) {
+      out.push({
+        id: 'spf-include-no-record',
+        severity: 'critical',
+        title: `SPF permerror: ${p.domain} publishes no SPF record`,
+        detail:
+          `Your record includes ${p.domain}, which has no SPF record. RFC 7208 §5.2 makes ` +
+          'that a permerror when a receiver reaches it. Usually the include belongs to a ' +
+          'service you no longer use, or its name was mistyped.',
+        fix: {
+          kind: 'action',
+          steps: [
+            `Check the include value against the provider's current documentation.`,
+            'If you no longer use the service, remove the include.',
+          ],
+        },
+      });
+      continue;
+    }
+
     if (p.code === 'dns-error') {
       out.push({
         id: 'spf-lookup-failed',
@@ -228,17 +281,18 @@ function spfFindings({ domain, spf, flatten }: CheckInput): Finding[] {
 
     const map: Record<string, { id: FindingId; severity: Finding['severity']; title: string }> = {
       'multiple-records': { id: 'spf-multiple-records', severity: 'critical', title: 'More than one SPF record' },
-      'void-limit': { id: 'spf-void-limit', severity: 'warning', title: 'Too many dead lookups in SPF' },
+      // RFC 7208 §4.6.4: past two, the check is a permerror like the lookup limit.
+      'void-limit': { id: 'spf-void-limit', severity: 'critical', title: 'SPF permerror: too many void lookups' },
       'ptr-deprecated': { id: 'spf-ptr', severity: 'warning', title: 'SPF uses the deprecated ptr mechanism' },
       'loop': { id: 'spf-loop', severity: 'critical', title: 'SPF include loop' },
       'mx-fanout': { id: 'spf-mx-fanout', severity: 'warning', title: 'An mx mechanism returns too many hosts' },
-      'syntax': { id: 'spf-syntax', severity: 'warning', title: 'SPF syntax problem' },
+      'dead-terms': { id: 'spf-dead-terms', severity: 'warning', title: 'Part of the SPF record is never used' },
     };
     const meta = map[p.code];
     if (!meta) continue;
     out.push({
       ...meta,
-      detail: p.domain === domain ? p.message : `${p.message} (in the record for ${p.domain})`,
+      detail: `${p.message}${where}`,
       fix: meta.id === 'spf-multiple-records'
         ? {
             kind: 'action',

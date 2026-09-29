@@ -70,6 +70,10 @@ export interface SpfProblem {
   message: string;
   /** Where in the include graph it surfaced. */
   domain: string;
+  /** For a syntax error in one term: the term as written. */
+  term?: string;
+  /** For a syntax error that is two terms run together: the corrected pair. */
+  suggestion?: string;
 }
 
 export interface SpfEvaluation {
@@ -89,6 +93,12 @@ export interface SpfEvaluation {
   problems: SpfProblem[];
   tree: SpfNode | null;
   truncated: boolean;
+  /**
+   * Why a receiver following RFC 7208 would return permerror for this record, or null.
+   * When set, `lookupCount` is informational: a receiver never gets to count, or stops
+   * counting, because the record is broken.
+   */
+  permerror: string | null;
   /**
    * The apex TXT lookup got no answer (SERVFAIL, timeout) even after a retry. `found`
    * is then false for want of an answer, not because the domain publishes nothing.
@@ -184,17 +194,38 @@ async function walk(
   node.record = record;
   const parsed = parseSpf(record);
   node.parsed = parsed;
-  for (const e of parsed.errors) problem(state, domain, 'syntax', e);
+  // One problem per malformed term, so each is named with its own fix.
+  for (const t of parsed.terms) {
+    if (!t.error) continue;
+    state.problems.push({
+      code: 'syntax', domain, term: t.raw, message: `malformed term "${t.raw}": ${t.error}`,
+      ...(t.suggestion ? { suggestion: t.suggestion } : {}),
+    });
+  }
+  for (const e of parsed.recordErrors) state.problems.push({ code: 'syntax', domain, message: e });
+  for (const w of parsed.warnings) problem(state, domain, 'dead-terms', w);
+
+  const hasAll = parsed.terms.some((t) => t.name === 'all' && t.kind === 'mechanism');
 
   for (const term of parsed.terms) {
-    // Free mechanisms: harvest addresses for flattening, then move on.
+    // Free mechanisms: harvest addresses for flattening, then move on. A malformed
+    // address is not an address, and must never reach a suggested record.
     if (term.name === 'ip4' && term.value) {
-      state.ip4.add(term.value); node.ownIp4.push(term.value); continue;
+      if (!term.error) { state.ip4.add(term.value); node.ownIp4.push(term.value); }
+      continue;
     }
     if (term.name === 'ip6' && term.value) {
-      state.ip6.add(term.value); node.ownIp6.push(term.value); continue;
+      if (!term.error) { state.ip6.add(term.value); node.ownIp6.push(term.value); }
+      continue;
     }
     if (!term.costsLookup) continue;
+
+    // RFC 7208 §6.1: with an `all` in the record, redirect= is ignored — a receiver
+    // never fetches it, so it is neither charged nor followed. The parser warns.
+    if (term.name === 'redirect' && hasAll) {
+      node.children.push({ term, node: null, skipped: 'ignored — the record has an all mechanism' });
+      continue;
+    }
 
     // Charged before the query, and charged even when we decline to follow it —
     // the limit counts terms evaluated, not packets sent.
@@ -322,6 +353,30 @@ function effectiveAll(node: SpfNode | null): string | null {
   return redirect ? effectiveAll(redirect.node) : null;
 }
 
+/**
+ * The first reason a spec-following receiver would return permerror, in the order it
+ * would hit them. RFC 7208: several SPF records (§4.5), a syntax error anywhere it
+ * evaluates (§4.6), an include whose target publishes no record (§5.2), more than ten
+ * lookups or two void lookups (§4.6.4), and an mx that fans out past ten hosts.
+ *
+ * `redirect=` alongside `all` is deliberately absent: §6.1 says the redirect is then
+ * ignored, which is a mistake worth a warning but not an error.
+ */
+function permerrorReason(state: State, apex: string): string | null {
+  const first = (code: string) => state.problems.find((p) => p.code === code);
+  const multiple = first('multiple-records');
+  if (multiple) return multiple.domain === apex ? 'more than one SPF record is published' : `${multiple.domain} publishes more than one SPF record`;
+  const syntax = first('syntax');
+  if (syntax) return syntax.term ? `malformed term "${syntax.term}"` : syntax.message;
+  const missing = state.problems.find((p) => p.code === 'no-record' && p.domain !== apex);
+  if (missing) return `${missing.domain} is included but publishes no SPF record`;
+  if (first('loop')) return 'an include loop';
+  if (state.lookups > LOOKUP_LIMIT) return `${state.lookups} DNS lookups, over the limit of ${LOOKUP_LIMIT}`;
+  if (state.voids > VOID_LIMIT) return `${state.voids} void lookups, over the limit of ${VOID_LIMIT}`;
+  if (first('mx-fanout')) return 'an mx mechanism returns more than 10 hosts';
+  return null;
+}
+
 export async function evaluateSpf(
   dns: DnsBackend,
   domain: string,
@@ -351,6 +406,7 @@ export async function evaluateSpf(
 
   return {
     domain,
+    permerror: permerrorReason(state, domain),
     lookupError: state.lookupError,
     found: Boolean(tree?.record),
     record: tree?.record ?? null,

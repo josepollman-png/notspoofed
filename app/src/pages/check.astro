@@ -125,6 +125,7 @@ const viaCname = (chain: string[]) =>
           {result.queryCount} DNS queries in {result.elapsedMs}ms ·
           SPF {result.spf.lookupError ? 'could not be checked'
             : !result.spf.found ? 'not published'
+            : result.spf.permerror ? `permerror (${result.spf.lookupCount} lookups counted)`
             : `${result.spf.lookupCount}/10 lookups`} ·
           DKIM {result.dkim.keys.length > 0 ? `${result.dkim.keys.length} key${result.dkim.keys.length === 1 ? '' : 's'}` : 'none found'} ·
           DMARC {result.dmarc.record?.effectivePolicy ? `p=${result.dmarc.record.effectivePolicy}`

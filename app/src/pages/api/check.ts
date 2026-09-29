@@ -95,7 +95,9 @@ export const GET: APIRoute = async ({ request, url, clientAddress }) => {
         found: r.spf.found,
         record: r.spf.record,
         lookupCount: r.spf.lookupCount,
-        // Additive: whether the apex lookup got an answer at all.
+        // Additive: why a receiver would return permerror (lookupCount is then
+        // informational), and whether the apex lookup got an answer at all.
+        permerror: r.spf.permerror,
         lookupError: r.spf.lookupError,
         lookupLimit: 10,
         limitExceeded: r.spf.limitExceeded,

@@ -70,7 +70,7 @@ export interface CounterFlag {
   code:
     | 'ptr' | 'duplicate-include' | 'permissive-all' | 'no-all' | 'multiple-records'
     | 'string-too-long' | 'record-too-large' | 'void-limit' | 'loop' | 'macro'
-    | 'syntax' | 'no-record' | 'mx-fanout' | 'truncated' | 'dns-error';
+    | 'syntax' | 'no-record' | 'mx-fanout' | 'truncated' | 'dead-terms' | 'dns-error';
   severity: 'error' | 'warning' | 'info';
   message: string;
 }
@@ -173,6 +173,8 @@ function buildNodes(node: SpfNode, targetCounts: Map<string, number>): CounterNo
   return node.children.map((child) => {
     const followed = child.term.name === 'include' || child.term.name === 'redirect';
     const target = targetOf(child.term, node.domain);
+    // A term the evaluator did not charge — a redirect= made dead by all — costs nothing.
+    const charged = child.lookupsAfter !== undefined;
     const lookupsAfter = child.lookupsAfter ?? 0;
     const voids = child.voids ?? 0;
     const voidsAfter = child.voidsAfter ?? 0;
@@ -180,8 +182,8 @@ function buildNodes(node: SpfNode, targetCounts: Map<string, number>): CounterNo
       mechanism: child.term.raw,
       name: child.term.name,
       target,
-      cost: 1,
-      totalCost: followed ? 1 + subtreeCost(child.node) : 1,
+      cost: charged ? 1 : 0,
+      totalCost: !charged ? 0 : followed ? 1 + subtreeCost(child.node) : 1,
       lookupsAfter,
       voids,
       voidsAfter,
@@ -349,15 +351,22 @@ function findFlags(evaluation: SpfEvaluation, strings: string[], source: Counter
         add({ code: 'loop', severity: 'error', message: `${p.message}. A receiver follows it until the lookup limit and returns PermError.` });
         break;
       case 'syntax':
-        add({ code: 'syntax', severity: 'error', message: `${where(p.domain)}: ${p.message}` });
+        add({
+          code: 'syntax', severity: 'error',
+          message: `${where(p.domain)}: ${p.message}. Receivers treat the whole record as broken (PermError).` +
+            (p.suggestion ? ` Likely a missing space: ${p.suggestion}` : ''),
+        });
+        break;
+      case 'dead-terms':
+        add({ code: 'dead-terms', severity: 'warning', message: `${where(p.domain)}: ${p.message}.` });
+        break;
+      case 'dns-error':
+        add({ code: 'dns-error', severity: 'warning', message: `${where(p.domain)} did not answer (${p.message}), so the tree below it is missing and the true count may be higher.` });
         break;
       case 'no-record':
         if (p.domain !== evaluation.domain) {
           add({ code: 'no-record', severity: 'error', message: `${p.domain} is included but has no SPF record — the include is a PermError when a receiver reaches it.` });
         }
-        break;
-      case 'dns-error':
-        add({ code: 'dns-error', severity: 'warning', message: `${where(p.domain)} did not answer (${p.message}), so the tree below it is missing and the true count may be higher.` });
         break;
       case 'mx-fanout':
         add({ code: 'mx-fanout', severity: 'error', message: `${where(p.domain)}: ${p.message}` });
