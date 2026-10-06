@@ -6,7 +6,7 @@ answer: "DMARC passes when SPF or DKIM passes and the domain it passed for match
 question: "What does SPF pass, DKIM fail, DMARC pass mean?"
 category: "DMARC"
 published: 2026-09-23
-updated: 2026-09-23
+updated: 2026-10-06
 order: 31
 faq:
   - q: "What does spf pass dkim fail dmarc pass mean?"
@@ -47,6 +47,9 @@ DMARC passes when `header.from` matches the `smtp.mailfrom` domain of a passing 
 check, or the `header.d` domain of a passing DKIM signature. Under the default relaxed
 alignment ([RFC 7489 §3.1](https://www.rfc-editor.org/rfc/rfc7489#section-3.1)),
 `bounce.example.com` counts as a match for `example.com`.
+
+That comparison is the whole of what DMARC adds. SPF never looks at the From: header,
+which is why [SPF without DMARC does not stop spoofing](/spf-vs-dmarc).
 
 ## Every combination
 

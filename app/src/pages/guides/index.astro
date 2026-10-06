@@ -1,5 +1,5 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, getEntry } from 'astro:content';
 import DomainForm from '../../components/DomainForm.astro';
 import Base from '../../layouts/Base.astro';
 import { BOUNCE_GUIDES, GUIDE_COLLECTIONS } from '../../lib/site.js';
@@ -19,6 +19,26 @@ import { BOUNCE_GUIDES, GUIDE_COLLECTIONS } from '../../lib/site.js';
 const guides = (await getCollection('guides')).sort(
   (a, b) => a.data.order - b.data.order,
 );
+
+/**
+ * The research pages. They are not guides — they report what a scan found rather than
+ * fixing a problem — but they are where a reader goes next from several guides, and two
+ * of them were linked from nowhere but each other.
+ */
+const researchEntry = async (id: string) => (await getEntry('research', id))!.data;
+const research = [
+  {
+    href: '/research/yc-email-spoofing-study',
+    title: 'We scanned every Y Combinator company: 60.5% can be email-spoofed',
+    description: 'The study: every YC company domain scanned for DMARC twice, three weeks apart.',
+  },
+  ...(await Promise.all(
+    ['dmarc-adoption-statistics', 'spf-vs-dmarc', 'yc-dmarc-dataset'].map(async (id) => {
+      const d = await researchEntry(id);
+      return { href: d.path, title: d.title, description: d.description };
+    }),
+  )),
+];
 
 /** The orientation link. Lowest `order` is the editorial "read this first". */
 const first = guides[0]!;
@@ -72,6 +92,20 @@ const rest = guides.slice(1);
       <li class="card">
         <p class="cat">Bounces</p>
         <h3><a href={guide.href}>{guide.title}</a></h3>
+      </li>
+    ))}
+  </ul>
+
+  <h2 class="more-h">Research and comparisons</h2>
+  <p class="more-p">
+    What a scan of 6,157 company domains found, and the numbers behind the guides above.
+  </p>
+  <ul class="grid">
+    {research.map((r) => (
+      <li class="card">
+        <p class="cat">Research</p>
+        <h3><a href={r.href}>{r.title}</a></h3>
+        <p class="desc">{r.description}</p>
       </li>
     ))}
   </ul>

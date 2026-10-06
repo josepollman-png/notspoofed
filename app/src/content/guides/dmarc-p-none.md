@@ -6,7 +6,7 @@ answer: "p=none tells receivers to take no action on mail that fails DMARC, so f
 question: "Does DMARC p=none protect my domain?"
 category: "DMARC"
 published: 2026-07-31
-updated: 2026-09-22
+updated: 2026-10-06
 order: 20
 faq:
   - q: "Does p=none stop email spoofing?"
@@ -39,7 +39,8 @@ This is not a flaw. Monitoring first is the correct sequence — you cannot safe
 enforce a policy until you know what your own legitimate mail looks like. The failure
 mode is stopping here. Plenty of domains published `p=none` during the 2024 sender
 requirement scramble and have not touched it since, and they are no more protected
-than a domain with no DMARC record at all.
+than a domain with no DMARC record at all. In our scan of 6,157 company domains,
+[31.8% were at `p=none`](/dmarc-adoption-statistics) — more than were at `p=reject`.
 
 ## Why you cannot just skip to p=reject
 
@@ -124,3 +125,6 @@ delivered, and it should come out.
 `p=none` is a diagnostic tool, not a control. If your domain has been at `p=none` for
 more than a couple of months, nothing is protecting it, and the reports you are
 collecting are only worth anything if you act on them.
+
+**By platform:** where to publish the record and read the reports for
+[Google Workspace](/guide/dmarc-google-workspace) · [Microsoft 365](/guide/dmarc-microsoft-365) · [Shopify](/guide/dmarc-shopify) · [Cloudflare](/guide/spf-dmarc-cloudflare).

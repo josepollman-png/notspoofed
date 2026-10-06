@@ -4,6 +4,7 @@ import FindingCard from '../components/FindingCard.astro';
 import { affiliateFindingId, dmarcAffiliate } from '../lib/affiliate.js';
 import Base from '../layouts/Base.astro';
 import { InvalidDomainError, runCheck, type CheckResult } from '../lib/check.js';
+import { detectPlatforms } from '../lib/platform.js';
 import { clientIp, rateLimit, RATE_LIMIT } from '../lib/ratelimit.js';
 import { absoluteUrl, siteOrigin } from '../lib/site.js';
 import { track } from '../lib/stats.js';
@@ -90,6 +91,9 @@ const affiliateFor =
 
 // Where a record really lives when its name is an alias — managed DMARC and MTA-STS
 // providers host records this way, and the target usually names the provider.
+// The platform guide that fits, from records already fetched — no extra lookups.
+const platforms = result ? detectPlatforms(result.mx, result.spf) : [];
+
 const viaCname = (chain: string[]) =>
   chain.length > 0 ? ` · via CNAME to ${chain[chain.length - 1]}` : '';
 ---
@@ -140,6 +144,14 @@ const viaCname = (chain: string[]) =>
             copy handler can find it exactly as it finds a DNS record — same mechanism,
             same feedback, no second implementation. It stays in the layout (rather than
             display:none) so the no-clipboard fallback can still select it. */}
+        {platforms.length > 0 && (
+          <p class="platform">
+            {platforms.map((p, i) => (
+              <>{i > 0 && ' · '}<a href={p.href}>Setup guide for {p.name}</a></>
+            ))}
+          </p>
+        )}
+
         <p class="share">
           <span class="sr-only" data-copy-source>{absoluteUrl(`/check?domain=${encodeURIComponent(result.domain)}`)}</span>
           <button type="button" class="copy quiet" data-copy aria-label={`Copy link to the results for ${result.domain}`}>
@@ -287,6 +299,7 @@ const viaCname = (chain: string[]) =>
   .headline.ok  { color: var(--pass); }
 
   .meta { color: var(--muted); font-size: 13px; margin: 0; }
+  .platform { font-size: 14px; margin: 10px 0 0; }
 
   /* Same token values as the Copy buttons on the record blocks. They cannot be shared
      directly because Astro scopes component styles, and those are positioned over their

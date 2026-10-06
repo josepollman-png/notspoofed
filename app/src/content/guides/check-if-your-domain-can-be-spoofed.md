@@ -6,7 +6,7 @@ answer: "Your domain can be spoofed if its DMARC policy is missing or set to p=n
 question: "How do I check if my domain can be spoofed?"
 category: "Getting started"
 published: 2026-08-14
-updated: 2026-09-22
+updated: 2026-10-06
 order: 8
 faq:
   - q: "Can I check whether my domain is spoofable without sending an email?"
@@ -126,6 +126,8 @@ deliverability are now the same problem.
 Authentication is only three of the nine things they ask for. The
 [Gmail and Yahoo compliance checker](/tools/gmail-yahoo-compliance) runs the whole list.
 → [Google and Yahoo's sender requirements](/guide/google-yahoo-sender-requirements)
+
+**By platform:** the records to publish on [Google Workspace](/guide/dmarc-google-workspace) · [Microsoft 365](/guide/dmarc-microsoft-365) · [Shopify](/guide/dmarc-shopify) · [Cloudflare](/guide/spf-dmarc-cloudflare).
 
 ---
 

@@ -6,7 +6,7 @@ answer: "SPF allows ten DNS-querying terms per evaluation (include, a, mx, ptr, 
 question: "Why does my SPF record say too many DNS lookups?"
 category: "SPF"
 published: 2026-07-31
-updated: 2026-09-22
+updated: 2026-10-06
 order: 10
 faq:
   - q: "How many DNS lookups does SPF allow?"
@@ -128,3 +128,6 @@ using someone else's and the parsed output looks subtly mangled, this is why.
 Ten is legal, but ten is not a target. A record sitting at exactly ten breaks the day
 your marketing team signs up for one more tool, and nobody will connect those two
 events. Aim for seven or eight so there is room to add a sender without an outage.
+
+**By platform:** the include each provider needs, and what it costs —
+[Google Workspace](/guide/dmarc-google-workspace) · [Microsoft 365](/guide/dmarc-microsoft-365) · [Shopify](/guide/dmarc-shopify) · [Cloudflare](/guide/spf-dmarc-cloudflare).

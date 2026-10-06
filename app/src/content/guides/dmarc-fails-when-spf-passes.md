@@ -6,7 +6,7 @@ answer: "DMARC fails when SPF and DKIM pass for a domain other than the one in y
 question: "Why does DMARC fail when SPF passes?"
 category: "DMARC"
 published: 2026-07-31
-updated: 2026-09-22
+updated: 2026-10-06
 order: 25
 faq:
   - q: "Why does DMARC fail when SPF passes?"
@@ -53,6 +53,9 @@ In the example above, SPF passed for `esp-vendor.net` and DKIM signed as
 `esp-vendor.net`, but the recipient sees `yourcompany.com`. Nothing authenticated
 `yourcompany.com`, so DMARC fails — correctly. Otherwise anyone with a mailbox at a
 provider with valid SPF could send as you.
+
+The same gap is why [SPF on its own does not stop anyone spoofing your
+domain](/spf-vs-dmarc): it never looks at the From: header at all.
 
 ## How this happens to you by accident
 

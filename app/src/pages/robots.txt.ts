@@ -86,9 +86,11 @@ export const GET: APIRoute = () =>
       // application's /tools/sitemap.xml, so one entry covers both halves of the
       // hostname — and anything added later.
       `Sitemap: ${absoluteUrl('/sitemap.xml')}`,
-      // Not a standard directive, and no crawler is required to read it. It costs one
-      // line and is the only in-band way to advertise the file.
-      `Llms-txt: ${absoluteUrl('/llms.txt')}`,
+      // TEMPORARY, with the route: the pre-move /guides/ URLs, so crawlers follow their
+      // redirects. Remove both after 2026-11-06.
+      `Sitemap: ${absoluteUrl('/sitemap-legacy.xml')}`,
+      // No Llms-txt line. It is not a robots.txt directive, Lighthouse fails the file for
+      // it, and /llms.txt is found at its well-known path without one.
       '',
     ].join('\n'),
     { headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
