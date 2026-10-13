@@ -8,6 +8,7 @@ import type { BimiResult, DnssecResult, MtaStsResult, TlsRptResult } from './mod
 import type { Finding, FindingId, Fix } from './findings.js';
 import { bySeverity } from './findings.js';
 import type { SpfEvaluation } from './spf/evaluate.js';
+import type { Term } from './spf/parse.js';
 import { allSource, LOOKUP_LIMIT } from './spf/evaluate.js';
 import type { FlattenPlan } from './spf/flatten.js';
 
@@ -135,6 +136,65 @@ function spfFix(
       'switches off (RFC 7208 §6.1), so dropping it changes nothing.',
     chain,
   );
+}
+
+/**
+ * Hosted SPF services that publish macro includes, recognised by the domain the macro
+ * resolves under. Only services whose macro shape has been seen live are listed:
+ * naming the wrong provider is worse than naming none.
+ */
+const MACRO_PROVIDERS: { suffix: string; name: string }[] = [
+  { suffix: 'salesforce.com', name: 'Salesforce' },      // exists:%{i}._spf.mta.salesforce.com
+  { suffix: 'pphosted.com', name: 'Proofpoint' },         // include:%{ir}.%{v}.%{d}.spf.has.pphosted.com
+  { suffix: 'vali.email', name: 'Valimail' },             // include:%{i}._ip.%{h}._ehlo.%{d}._spf.vali.email
+];
+
+function macroProvider(term: Term): string | null {
+  // The labels after the last macro are the fixed part of the name.
+  const fixed = (term.value ?? '').toLowerCase().split('.').filter((l) => !l.includes('%')).join('.');
+  return MACRO_PROVIDERS.find((p) => fixed === p.suffix || fixed.endsWith(`.${p.suffix}`))?.name ?? null;
+}
+
+/**
+ * Who the macros belong to. The note used to say "normal for Salesforce" for every
+ * macro — including Proofpoint's on homedepot.com and Valimail's on usenix.org.
+ */
+function macroNote(spf: SpfEvaluation): string {
+  const named = new Map<string, string[]>();
+  const unknown: string[] = [];
+  for (const t of spf.macroTerms) {
+    const name = macroProvider(t);
+    if (name) named.set(name, [...(named.get(name) ?? []), t.raw]);
+    else unknown.push(t.raw);
+  }
+
+  const parts: string[] = [];
+  if (named.size > 0) {
+    const names = [...named.keys()];
+    const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+    parts.push(`${list} ${names.length === 1 ? 'uses' : 'use'} macros like this by design, so no action is needed.`);
+  }
+  if (unknown.length > 0) {
+    parts.push(
+      `${named.size > 0 ? `${unknown.join(', ')} ${unknown.length === 1 ? 'is' : 'are'} not from a service we recognise. ` : ''}` +
+      'Some hosted SPF services use macros like this; if you do not recognise ' +
+      `${unknown.length === 1 ? 'it' : 'them'}, find out which service added ${unknown.length === 1 ? 'it' : 'them'}.`,
+    );
+  }
+
+  // A record whose only sender is a macro: the visible count is the whole of what can
+  // be seen, and it is not the whole of what a receiver evaluates.
+  const senders = spf.tree?.parsed?.terms.filter(
+    (t) => t.kind === 'mechanism' && t.name !== 'all',
+  ) ?? [];
+  if (senders.length > 0 && senders.every((t) => t.hasMacro)) {
+    parts.push(
+      `Here the macro is the only sender in the record, so the ${spf.lookupCount}/${LOOKUP_LIMIT} ` +
+      'lookup count is all that can be seen from outside: what the hosted service evaluates ' +
+      'behind it is resolved per message on its side and cannot be counted here.',
+    );
+  }
+  return parts.join(' ');
 }
 
 // ---------------------------------------------------------------------------
@@ -313,8 +373,8 @@ function spfFindings({ domain, spf, flatten, domainCnameChain = [] }: CheckInput
       detail:
         `${spf.macroTerms.map((t) => t.raw).join(', ')} expand using the connecting ` +
         'server\'s IP address, so their result depends on who is sending. They are ' +
-        'counted toward your lookup total but cannot be checked from here. This is ' +
-        'normal for Salesforce and some large senders — no action needed.',
+        'counted toward your lookup total but cannot be checked from here. ' +
+        macroNote(spf),
     });
   }
 
