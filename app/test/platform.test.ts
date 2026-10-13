@@ -19,13 +19,18 @@ describe('platform guide detection', () => {
 
   it('spots Microsoft 365 by MX or by its SPF include', async () => {
     expect(await names(['example-com.mail.protection.outlook.com'], 'v=spf1 -all')).toEqual(['Microsoft 365']);
-    expect(await names([], 'v=spf1 include:spf.protection.outlook.com -all', { 'spf.protection.outlook.com': ['v=spf1 -all'] }))
+    expect(await names([], 'v=spf1 include:spf.protection.outlook.com -all', { 'spf.protection.outlook.com': ['v=spf1 ip4:40.92.0.0/15 -all'] }))
       .toEqual(['Microsoft 365']);
   });
 
-  it('spots Shopify alongside the mail provider', async () => {
-    expect(await names(['aspmx.l.google.com'], 'v=spf1 include:shops.shopify.com ~all', { 'shops.shopify.com': ['v=spf1 -all'] }))
+  it('spots Shopify alongside the mail provider, when its include authorises something', async () => {
+    expect(await names(['aspmx.l.google.com'], 'v=spf1 include:shops.shopify.com ~all', { 'shops.shopify.com': ['v=spf1 ip4:192.0.2.0/24 -all'] }))
       .toEqual(['Google Workspace', 'Shopify']);
+  });
+
+  it('ignores an include whose record authorises nothing (isc.org, shops.shopify.com is v=spf1 ~all)', async () => {
+    expect(await names([], 'v=spf1 include:shops.shopify.com ~all', { 'shops.shopify.com': ['v=spf1 ~all'] }))
+      .toEqual([]);
   });
 
   it('matches whole labels only, and says nothing when nothing matches', async () => {

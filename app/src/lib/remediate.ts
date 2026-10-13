@@ -9,7 +9,7 @@ import type { Finding, FindingId, Fix } from './findings.js';
 import { bySeverity } from './findings.js';
 import type { SpfEvaluation } from './spf/evaluate.js';
 import type { Term } from './spf/parse.js';
-import { allSource, LOOKUP_LIMIT } from './spf/evaluate.js';
+import { allSource, authorisesNothing, LOOKUP_LIMIT } from './spf/evaluate.js';
 import type { FlattenPlan } from './spf/flatten.js';
 
 /**
@@ -244,6 +244,12 @@ function spfFindings({ domain, spf, flatten, domainCnameChain = [] }: CheckInput
     return out;
   }
 
+  // Includes in the user's own record that cost a lookup and can never match. Found
+  // before the lookup-count findings so their advice can start with the free win.
+  const idle = (spf.tree?.children ?? []).filter(
+    (c) => c.term.name === 'include' && c.term.value && authorisesNothing(c.node),
+  );
+
   if (spf.limitExceeded) {
     const base: Finding = {
       id: 'spf-lookup-limit',
@@ -269,6 +275,7 @@ function spfFindings({ domain, spf, flatten, domainCnameChain = [] }: CheckInput
       base.fix = {
         kind: 'action',
         steps: [
+          ...idle.map((c) => `Remove ${c.term.raw}: it costs a lookup and authorises no servers.`),
           'Remove senders you no longer use — this is the only fix with no downside.',
           'Ask remaining vendors whether they publish a narrower include.',
           'Flatten the largest include to raw ip4/ip6 ranges, and re-check monthly.',
@@ -290,6 +297,7 @@ function spfFindings({ domain, spf, flatten, domainCnameChain = [] }: CheckInput
       fix: {
         kind: 'action',
         steps: [
+          ...idle.map((c) => `Start with ${c.term.raw}: it costs a lookup and authorises no servers.`),
           'Audit the list for senders you no longer use.',
           'Before adding any new sending tool, re-run this check.',
         ],
@@ -363,6 +371,32 @@ function spfFindings({ domain, spf, flatten, domainCnameChain = [] }: CheckInput
         ),
       });
     }
+  }
+
+  for (const c of idle) {
+    const target = c.term.value!;
+    const record = c.node!.record!;
+    out.push({
+      id: 'spf-include-authorises-nothing',
+      // Costs a lookup that matters only when lookups are scarce.
+      severity: spf.lookupCount >= LOOKUP_LIMIT - 1 ? 'warning' : 'info',
+      title: `${c.term.raw} costs one DNS lookup and authorises no servers`,
+      detail:
+        `${target} publishes "${record}", which lists no address, no host and no further ` +
+        'include, so it can never match: no message passes SPF because of it (RFC 7208 ' +
+        `§5.2). It still costs one of your ${LOOKUP_LIMIT} lookups. Usually it is left ` +
+        'over from a service that no longer sends through it.',
+      fix: spf.record
+        ? spfFix(
+            domain,
+            domain,
+            spf.record.trim().split(/\s+/).filter((t) => t !== c.term.raw).join(' '),
+            'Removing it changes no SPF result, because the include cannot match. If the ' +
+              `service later starts listing servers at ${target}, it would need to go back in.`,
+            domainCnameChain,
+          )
+        : undefined,
+    });
   }
 
   if (spf.macroTerms.length > 0) {

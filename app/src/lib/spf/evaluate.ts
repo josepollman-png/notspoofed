@@ -383,6 +383,22 @@ export function allSource(node: SpfNode | null): AllSource | null {
   return allSource(redirect.node);
 }
 
+/**
+ * True when a fetched record can never produce a match: no `+` mechanism that names
+ * senders (ip4, ip6, a, mx, ptr, exists, include), no redirect= to hand off to, and no
+ * `+all`. `include:` of such a record still costs a lookup and can never pass anyone —
+ * shops.shopify.com, which answers `v=spf1 ~all`, is the live example. RFC 7208 §5.2:
+ * an include matches only when the included record evaluates to pass.
+ */
+export function authorisesNothing(node: SpfNode | null): boolean {
+  if (!node?.parsed || !node.record) return false;
+  const SENDERS = new Set(['ip4', 'ip6', 'a', 'mx', 'ptr', 'exists', 'include']);
+  return !node.parsed.terms.some((t) =>
+    (t.kind === 'mechanism' && t.qualifier === '+' && (SENDERS.has(t.name) || t.name === 'all')) ||
+    t.name === 'redirect',
+  );
+}
+
 function effectiveAll(node: SpfNode | null): string | null {
   const source = allSource(node);
   return source?.status === 'all' ? source.term.qualifier : null;

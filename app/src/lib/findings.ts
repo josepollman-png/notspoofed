@@ -71,7 +71,7 @@ export const FINDING_IDS = [
   'spf-missing', 'spf-lookup-limit', 'spf-lookup-headroom', 'spf-permissive-all',
   'spf-no-all', 'spf-neutral-all', 'spf-macros', 'spf-multiple-records',
   'spf-void-limit', 'spf-ptr', 'spf-loop', 'spf-mx-fanout', 'spf-syntax',
-  'spf-lookup-failed', 'spf-include-no-record', 'spf-dead-terms',
+  'spf-lookup-failed', 'spf-include-no-record', 'spf-dead-terms', 'spf-include-authorises-nothing',
   // DKIM
   'non-sending-domain', 'dkim-wildcard-dns', 'dkim-none-found', 'dkim-weak-key',
   'dkim-revoked', 'dkim-testing', 'dkim-ok',

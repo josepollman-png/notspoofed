@@ -1,5 +1,5 @@
 import type { MxRecord } from './dns/resolver.js';
-import type { SpfEvaluation, SpfNode } from './spf/evaluate.js';
+import { authorisesNothing, type SpfEvaluation, type SpfNode } from './spf/evaluate.js';
 
 /**
  * Which platform guide fits the domain, worked out from records the check already has.
@@ -21,10 +21,19 @@ export interface PlatformGuide {
 const under = (host: string, suffix: string) => host === suffix || host.endsWith(`.${suffix}`);
 const clean = (host: string) => host.toLowerCase().replace(/\.$/, '');
 
-/** Every include and redirect target anywhere in the evaluated tree. */
+/**
+ * Every include and redirect target anywhere in the evaluated tree — except targets
+ * whose record authorises nothing. An include like that is a leftover, not a sign the
+ * platform sends for the domain: isc.org carries include:shops.shopify.com, which
+ * answers `v=spf1 ~all`, and was shown a Shopify setup guide on the strength of it.
+ */
 function spfTargets(node: SpfNode | null, out = new Set<string>()): Set<string> {
   for (const child of node?.children ?? []) {
-    if ((child.term.name === 'include' || child.term.name === 'redirect') && child.term.value) {
+    if (
+      (child.term.name === 'include' || child.term.name === 'redirect') &&
+      child.term.value &&
+      !authorisesNothing(child.node)
+    ) {
       out.add(clean(child.term.value));
     }
     spfTargets(child.node, out);

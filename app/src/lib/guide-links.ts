@@ -39,6 +39,7 @@ export const FINDING_GUIDES: Partial<Record<FindingId, GuideLink>> = {
   'spf-missing': G.bulk,
   'spf-lookup-limit': G.lookups,
   'spf-lookup-headroom': G.lookups,
+  'spf-include-authorises-nothing': G.lookups,
   'spf-permissive-all': G.softfail,
   'spf-no-all': G.softfail,
   'spf-neutral-all': G.softfail,
