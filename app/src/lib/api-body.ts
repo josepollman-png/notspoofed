@@ -30,7 +30,21 @@ export function apiBody(r: CheckResult, checkedAt = new Date()) {
       fix: f.fix?.kind === 'record'
         ? { kind: 'record', host: f.fix.host, type: f.fix.type, value: f.fix.value, caveat: f.fix.caveat ?? null }
         : f.fix?.kind === 'action'
-          ? { kind: 'action', steps: f.fix.steps }
+          ? {
+              kind: 'action',
+              steps: f.fix.steps,
+              // Additive. Set when the fix is a record change at a name that is a CNAME:
+              // the change belongs at `target`, never at `host`. See ManagedRecord.
+              managedRecord: f.fix.managedRecord
+                ? {
+                    host: f.fix.managedRecord.host,
+                    target: f.fix.managedRecord.target,
+                    type: f.fix.managedRecord.type,
+                    value: f.fix.managedRecord.value,
+                    caveat: f.fix.managedRecord.caveat ?? null,
+                  }
+                : null,
+            }
           : null,
     })),
 

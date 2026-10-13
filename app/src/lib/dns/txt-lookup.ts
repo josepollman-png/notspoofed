@@ -51,7 +51,7 @@ const TRANSIENT = new Set<QueryError>(['SERVFAIL', 'TIMEOUT', 'REFUSED', 'OTHER'
 const strip = (name: string) => name.toLowerCase().replace(/\.$/, '');
 
 /** Walk the alias chain one CNAME query at a time. */
-async function walkCnames(
+export async function walkCnames(
   dns: DnsBackend,
   name: string,
 ): Promise<{ chain: string[]; problem?: 'loop' | 'too-long' }> {

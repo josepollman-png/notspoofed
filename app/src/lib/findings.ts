@@ -24,10 +24,33 @@ export interface RecordFix {
   caveat?: string;
 }
 
+/**
+ * A record change that cannot be made where the record would normally go, because that
+ * name is a CNAME. DNS allows no other data beside a CNAME (RFC 1034 §3.6.2, RFC 2181
+ * §10.1), so a TXT published there is refused or ignored: the change belongs at the
+ * end of the alias chain, which is often a provider's zone rather than the user's.
+ */
+export interface ManagedRecord {
+  /** The usual name for the record — the alias, e.g. `_dmarc.example.com`. */
+  host: string;
+  /** Where the CNAME chain ends: the name that actually holds the record. */
+  target: string;
+  type: 'TXT';
+  /** The record as it should read once changed. */
+  value: string;
+  caveat?: string;
+}
+
 /** Something to do that isn't a record — ask a vendor, check a console. */
 export interface ActionFix {
   kind: 'action';
   steps: string[];
+  /**
+   * Set when the fix is a record change at an aliased name. The fix is an action rather
+   * than a record because "publish this at <host>" would be wrong, and a consumer that
+   * only knows the two kinds then does the safe thing: shows the steps.
+   */
+  managedRecord?: ManagedRecord;
 }
 
 export type Fix = RecordFix | ActionFix;

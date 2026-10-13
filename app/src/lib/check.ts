@@ -2,6 +2,7 @@ import { parse } from 'tldts';
 import { checkDkim } from './dkim/check.js';
 import { checkDmarc } from './dmarc/check.js';
 import { DnsResolver, type DnsBackend, type MxRecord, type ResolverOptions } from './dns/resolver.js';
+import { walkCnames } from './dns/txt-lookup.js';
 import { checkBimi, checkDnssec, checkMtaSts, checkTlsRpt } from './modern/check.js';
 import { buildReport, type Report } from './remediate.js';
 import { evaluateSpf } from './spf/evaluate.js';
@@ -85,6 +86,8 @@ export interface CheckResult {
   mx: MxRecord[];
   /** RFC 7505 null MX — the domain declares that it accepts no mail at all. */
   nullMx: boolean;
+  /** The CNAME chain at the checked name, when it is an alias. Usually empty. */
+  domainCnameChain: string[];
   report: Report;
   /** Raw DNS queries issued. Surfaced so the cost of a check is never a mystery. */
   queryCount: number;
@@ -120,7 +123,7 @@ export async function runCheck(input: string, options: CheckOptions = {}): Promi
   // Everything below is independent of SPF and of each other. MTA-STS and DNSSEC
   // reach outside DNS (HTTPS policy fetch, DoH) and both fail soft, so a slow or
   // broken third party degrades one section rather than the whole report.
-  const [dkim, dmarc, mtaSts, tlsRpt, bimi, dnssec, mxAnswer] = await Promise.all([
+  const [dkim, dmarc, mtaSts, tlsRpt, bimi, dnssec, mxAnswer, alias] = await Promise.all([
     checkDkim(dns, domain, options.selectors ?? []),
     checkDmarc(dns, domain),
     checkMtaSts(dns, domain),
@@ -128,6 +131,8 @@ export async function runCheck(input: string, options: CheckOptions = {}): Promi
     checkBimi(dns, domain),
     (options.dnssec ?? checkDnssec)(domain),
     dns.mx(domain),
+    // An alias cannot carry its own TXT records, so an SPF fix must not be aimed at it.
+    walkCnames(dns, domain),
   ]);
 
   // RFC 7505: a single MX whose exchange is the root label means "no mail accepted".
@@ -136,12 +141,13 @@ export async function runCheck(input: string, options: CheckOptions = {}): Promi
   const nullMx = mx.length === 1 && (mx[0]!.exchange === '.' || mx[0]!.exchange === '');
 
   const flatten = spf.limitExceeded ? planFlattening(spf) : null;
+  const domainCnameChain = alias.chain;
   const report = buildReport({
-    domain, spf, flatten, dkim, dmarc, mtaSts, tlsRpt, bimi, dnssec, mx, nullMx,
+    domain, spf, flatten, dkim, dmarc, mtaSts, tlsRpt, bimi, dnssec, mx, nullMx, domainCnameChain,
   });
 
   return {
-    domain, spf, flatten, dkim, dmarc, mtaSts, tlsRpt, bimi, dnssec, mx, nullMx, report,
+    domain, spf, flatten, dkim, dmarc, mtaSts, tlsRpt, bimi, dnssec, mx, nullMx, domainCnameChain, report,
     queryCount: dns.queryCount,
     elapsedMs: Date.now() - started,
   };

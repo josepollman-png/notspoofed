@@ -1,10 +1,11 @@
+import { getDomain } from 'tldts';
 import type { DkimResult } from './dkim/check.js';
 import { UNGUESSABLE_PROVIDERS } from './dkim/selectors.js';
 import type { DmarcResult } from './dmarc/check.js';
 import type { MxRecord } from './dns/resolver.js';
 import { describeLookup, type TxtLookup } from './dns/txt-lookup.js';
 import type { BimiResult, DnssecResult, MtaStsResult, TlsRptResult } from './modern/check.js';
-import type { Finding, FindingId } from './findings.js';
+import type { Finding, FindingId, Fix } from './findings.js';
 import { bySeverity } from './findings.js';
 import type { SpfEvaluation } from './spf/evaluate.js';
 import { LOOKUP_LIMIT } from './spf/evaluate.js';
@@ -36,6 +37,56 @@ export interface CheckInput {
   dnssec: DnssecResult;
   mx: MxRecord[];
   nullMx: boolean;
+  /**
+   * The CNAME chain at the checked name itself, if it is an alias. Then its TXT records,
+   * SPF included, belong to the target, and an SPF fix cannot be published at it.
+   */
+  domainCnameChain?: string[];
+}
+
+/**
+ * A TXT record fix at `host` — unless `host` is a CNAME.
+ *
+ * A CNAME owns its name outright: RFC 1034 §3.6.2 ("If a CNAME RR is present at a node,
+ * no other data should be present") and RFC 2181 §10.1. Telling someone to publish a TXT
+ * at `_dmarc.homedepot.com`, which is a CNAME into Proofpoint, hands them a record their
+ * DNS host will refuse — or, worse, one that sits beside the CNAME and is never read. The
+ * record lives where the chain ends, so that is where the change has to be made: in the
+ * user's own zone when the target is theirs (salesforce.com aliases to a name under
+ * itself), or at the provider when it is not.
+ *
+ * Every TXT fix in this file goes through here, so no finding can forget the check.
+ */
+function txtFix(
+  domain: string,
+  host: string,
+  value: string,
+  caveat: string | undefined,
+  cnameChain: readonly string[],
+): Fix {
+  if (cnameChain.length === 0) {
+    return { kind: 'record', host, type: 'TXT', value, ...(caveat ? { caveat } : {}) };
+  }
+
+  const target = cnameChain[cnameChain.length - 1]!;
+  const via = cnameChain.length > 1 ? ` (via ${cnameChain.slice(0, -1).join(' → ')})` : '';
+  const ours = getDomain(target) !== null && getDomain(target) === (getDomain(domain) ?? domain);
+
+  return {
+    kind: 'action',
+    steps: [
+      `${host} is a CNAME to ${target}${via}, so the record lives at ${target}, not at ` +
+        `${host}. DNS allows nothing else at a name that is a CNAME (RFC 1034 §3.6.2), so ` +
+        `a TXT record published at ${host} would be refused or never read.`,
+      ours
+        ? `${target} is in your own DNS: change the TXT record there so it reads as shown.`
+        : `${target} is not in your DNS. It usually belongs to the provider that manages ` +
+          'this record for you: make the change in their dashboard, or ask them to.',
+      `To manage the record yourself instead, delete the CNAME at ${host} and publish ` +
+        'the record there.',
+    ],
+    managedRecord: { host, target, type: 'TXT', value, ...(caveat ? { caveat } : {}) },
+  };
 }
 
 /**
@@ -53,7 +104,7 @@ function isNonSending(input: CheckInput): boolean {
 // SPF
 // ---------------------------------------------------------------------------
 
-function spfFindings({ domain, spf, flatten }: CheckInput): Finding[] {
+function spfFindings({ domain, spf, flatten, domainCnameChain = [] }: CheckInput): Finding[] {
   const out: Finding[] = [];
 
   // No answer at the apex, even after a retry. Saying "no SPF record" here would be a
@@ -108,16 +159,15 @@ function spfFindings({ domain, spf, flatten }: CheckInput): Finding[] {
     };
 
     if (flatten) {
-      base.fix = {
-        kind: 'record',
-        host: domain,
-        type: 'TXT',
-        value: flatten.record,
-        caveat:
-          `This replaces ${flatten.flattened.join(', ')} with the addresses they ` +
+      base.fix = txtFix(
+        domain,
+        domain,
+        flatten.record,
+        `This replaces ${flatten.flattened.join(', ')} with the addresses they ` +
           'resolve to right now, bringing you to ' +
           `${flatten.lookupsAfter} lookups. ` + flatten.warnings.join(' '),
-      };
+        domainCnameChain,
+      );
     } else {
       base.fix = {
         kind: 'action',
@@ -159,13 +209,13 @@ function spfFindings({ domain, spf, flatten }: CheckInput): Finding[] {
       detail:
         'Any server anywhere passes SPF for your domain. This is worse than having no ' +
         'SPF record, because it actively vouches for forgeries.',
-      fix: {
-        kind: 'record',
-        host: domain,
-        type: 'TXT',
-        value: (spf.record ?? '').replace(/\+?all\s*$/, '~all'),
-        caveat: 'Change +all to ~all, then to -all once you have confirmed your senders are listed.',
-      },
+      fix: txtFix(
+        domain,
+        domain,
+        (spf.record ?? '').replace(/\+?all\s*$/, '~all'),
+        'Change +all to ~all, then to -all once you have confirmed your senders are listed.',
+        domainCnameChain,
+      ),
     });
   } else if (all === null) {
     out.push({
@@ -176,13 +226,13 @@ function spfFindings({ domain, spf, flatten }: CheckInput): Finding[] {
         'Without a closing all, unlisted senders get a neutral result, which receivers ' +
         'treat almost identically to having no SPF record. The record is doing much ' +
         'less than it appears to.',
-      fix: {
-        kind: 'record',
-        host: domain,
-        type: 'TXT',
-        value: `${spf.record} ~all`,
-        caveat: 'Start with ~all (softfail). Move to -all only once reports confirm every legitimate sender is covered.',
-      },
+      fix: txtFix(
+        domain,
+        domain,
+        `${spf.record} ~all`,
+        'Start with ~all (softfail). Move to -all only once reports confirm every legitimate sender is covered.',
+        domainCnameChain,
+      ),
     });
   } else if (all === '?') {
     out.push({
@@ -190,13 +240,13 @@ function spfFindings({ domain, spf, flatten }: CheckInput): Finding[] {
       severity: 'warning',
       title: 'SPF ends in ?all (neutral)',
       detail: 'A neutral result tells receivers nothing, so the record provides no protection against forgery.',
-      fix: {
-        kind: 'record',
-        host: domain,
-        type: 'TXT',
-        value: (spf.record ?? '').replace(/\?all\s*$/, '~all'),
-        caveat: 'Verify all your senders are listed before tightening further to -all.',
-      },
+      fix: txtFix(
+        domain,
+        domain,
+        (spf.record ?? '').replace(/\?all\s*$/, '~all'),
+        'Verify all your senders are listed before tightening further to -all.',
+        domainCnameChain,
+      ),
     });
   }
 
@@ -232,16 +282,15 @@ function spfFindings({ domain, spf, flatten }: CheckInput): Finding[] {
               'record split into several TXT strings, which join with nothing between them.'
             : ''),
         fix: p.suggestion && p.term && p.domain === domain && spf.record
-          ? {
-              kind: 'record',
-              host: domain,
-              type: 'TXT',
-              value: spf.record.replace(p.term, p.suggestion),
-              caveat:
-                `Replaces ${p.term} with ${p.suggestion}. If your DNS host shows the record ` +
+          ? txtFix(
+              domain,
+              domain,
+              spf.record.replace(p.term, p.suggestion),
+              `Replaces ${p.term} with ${p.suggestion}. If your DNS host shows the record ` +
                 'as several quoted strings, end each string with a space, or start the next ' +
                 'one with one.',
-            }
+              domainCnameChain,
+            )
           : undefined,
       });
       continue;
@@ -445,6 +494,11 @@ function dkimFindings(input: CheckInput): Finding[] {
  */
 export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' | 'dmarc' | 'mx'>): Finding[] {
   const out: Finding[] = [];
+  // The alias chain at a `_dmarc` name, from the tree walk that already queried it.
+  const chainAt = (host: string) =>
+    dmarc.lookups.find((l) => l.name.toLowerCase() === host.toLowerCase())?.cnameChain ?? [];
+  const dmarcFix = (host: string, value: string, caveat?: string) =>
+    txtFix(domain, host, value, caveat, chainAt(host));
 
   // No answer is not "no record". Saying a domain has no DMARC when its lookup merely
   // failed tells the owner of a p=reject domain that they are unprotected.
@@ -472,17 +526,14 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         'authentication, and no visibility into who is sending as you. Google and ' +
         'Yahoo have required DMARC for bulk senders since February 2024. ' +
         dmarc.lookups.map(describeLookup).join(' '),
-      fix: {
-        kind: 'record',
-        host: `_dmarc.${domain}`,
-        type: 'TXT',
-        value: `v=DMARC1; p=none; rua=mailto:dmarc@${domain}`,
-        caveat:
-          'p=none changes nothing about how your mail is treated — it only turns on ' +
+      fix: dmarcFix(
+        `_dmarc.${domain}`,
+        `v=DMARC1; p=none; rua=mailto:dmarc@${domain}`,
+        'p=none changes nothing about how your mail is treated — it only turns on ' +
           'reporting, so it is safe to publish today. Make sure the mailbox exists; ' +
           'it will receive daily XML reports. Move to p=quarantine once those reports ' +
           'show your legitimate senders passing.',
-      },
+      ),
     });
     return out;
   }
@@ -510,16 +561,13 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         'Your DMARC record collects reports but asks receivers to take no action, so ' +
         'forged mail is still delivered. This is the correct place to start, but it ' +
         'is not protection, and it does not satisfy bulk sender requirements on its own.',
-      fix: {
-        kind: 'record',
-        host: `_dmarc.${domain}`,
-        type: 'TXT',
-        value: r.raw.replace(/\bp\s*=\s*none\b/i, 'p=quarantine'),
-        caveat:
-          'Only publish this once your reports show legitimate mail passing SPF or ' +
+      fix: dmarcFix(
+        `_dmarc.${domain}`,
+        r.raw.replace(/\bp\s*=\s*none\b/i, 'p=quarantine'),
+        'Only publish this once your reports show legitimate mail passing SPF or ' +
           'DKIM with alignment. Moving to quarantine while a real sender is still ' +
           'failing will send that mail to spam.',
-      },
+      ),
     });
   } else if (r.effectivePolicy === 'quarantine') {
     out.push({
@@ -529,13 +577,11 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
       detail:
         'Failing mail goes to spam rather than being rejected. This is real protection. ' +
         'p=reject is the end state once you are confident in your reports.',
-      fix: {
-        kind: 'record',
-        host: `_dmarc.${domain}`,
-        type: 'TXT',
-        value: r.raw.replace(/\bp\s*=\s*quarantine\b/i, 'p=reject'),
-        caveat: 'Move only after a sustained period with no legitimate mail failing in your reports.',
-      },
+      fix: dmarcFix(
+        `_dmarc.${domain}`,
+        r.raw.replace(/\bp\s*=\s*quarantine\b/i, 'p=reject'),
+        'Move only after a sustained period with no legitimate mail failing in your reports.',
+      ),
     });
   } else if (r.effectivePolicy === 'reject') {
     out.push({
@@ -560,15 +606,12 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         'testing, so they apply handling one level below it. Forged mail that reads as ' +
         `${r.effectivePolicy === 'reject' ? 'rejected is quarantined' : 'quarantined is delivered'} ` +
         'instead. That is the right setting for a dry run and the wrong one to leave behind.',
-      fix: {
-        kind: 'record',
-        host: `_dmarc.${domain}`,
-        type: 'TXT',
-        value: r.raw.replace(/\bt\s*=\s*y\b/i, 't=n'),
-        caveat:
-          'Publish this once a dry run has produced no surprises. Removing t= entirely ' +
+      fix: dmarcFix(
+        `_dmarc.${domain}`,
+        r.raw.replace(/\bt\s*=\s*y\b/i, 't=n'),
+        'Publish this once a dry run has produced no surprises. Removing t= entirely ' +
           'has the same effect — t=n is the default.',
-      },
+      ),
     });
   }
 
@@ -584,15 +627,12 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         'real coverage was always less predictable than the number suggests, and on a ' +
         'receiver that has moved to 9989 there is now no gap because there is no tag. ' +
         'Either way it should not be what stands between a forgery and your customers.',
-      fix: {
-        kind: 'record',
-        host: `_dmarc.${domain}`,
-        type: 'TXT',
-        value: r.raw.replace(/;?\s*pct\s*=\s*\d+/i, ''),
-        caveat:
-          'Removing pct= applies your policy to all failing mail. Do this once the ' +
+      fix: dmarcFix(
+        `_dmarc.${domain}`,
+        r.raw.replace(/;?\s*pct\s*=\s*\d+/i, ''),
+        'Removing pct= applies your policy to all failing mail. Do this once the ' +
           'rollout is complete. For a staged rollout, t=y is the replacement.',
-      },
+      ),
     });
   }
 
@@ -605,13 +645,11 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         'With no rua= address you get no aggregate reports, so you cannot see who is ' +
         'sending as your domain or whether your own mail is passing. You are enforcing ' +
         'a policy blind.',
-      fix: {
-        kind: 'record',
-        host: `_dmarc.${domain}`,
-        type: 'TXT',
-        value: `${r.raw.replace(/;\s*$/, '')}; rua=mailto:dmarc@${domain}`,
-        caveat: 'The mailbox must exist and will receive daily XML attachments from mailbox providers.',
-      },
+      fix: dmarcFix(
+        `_dmarc.${domain}`,
+        `${r.raw.replace(/;\s*$/, '')}; rua=mailto:dmarc@${domain}`,
+        'The mailbox must exist and will receive daily XML attachments from mailbox providers.',
+      ),
     });
   }
 
@@ -682,13 +720,11 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
           `p=${r.policy} but sp=${r.subdomainPolicy}. Attackers forge subdomains ` +
           'precisely because they are usually weaker — a lookalike like ' +
           `billing.${domain} would be treated with the weaker policy.`,
-        fix: {
-          kind: 'record',
-          host: `_dmarc.${domain}`,
-          type: 'TXT',
-          value: r.raw.replace(/\bsp\s*=\s*(none|quarantine|reject)\b/i, `sp=${r.policy}`),
-          caveat: 'Confirm no subdomain sends mail that would start failing under the stricter policy.',
-        },
+        fix: dmarcFix(
+          `_dmarc.${domain}`,
+          r.raw.replace(/\bsp\s*=\s*(none|quarantine|reject)\b/i, `sp=${r.policy}`),
+          'Confirm no subdomain sends mail that would start failing under the stricter policy.',
+        ),
       });
     }
   }
@@ -708,23 +744,20 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         'refuse the unregistered ones outright while leaving your genuine subdomains ' +
         `under ${r.subdomainPolicy ? `sp=${r.subdomainPolicy}` : 'p='}. ` +
         'Receivers that have not adopted 9989 ignore it, so publishing it costs nothing.',
-      fix: {
-        kind: 'record',
+      fix: dmarcFix(
         // foundAt, not domain, unlike the findings above: np= governs non-existent
         // subdomains *of the domain publishing it*, so on an inherited record it
         // belongs on the parent. Publishing it at the subdomain the user happened to
         // type would apply it one level too low and do nothing they asked for.
-        host: `_dmarc.${r.foundAt}`,
-        type: 'TXT',
+        `_dmarc.${r.foundAt}`,
         // Appended rather than spliced in after p=. Tag order carries no meaning past
         // v=, and splicing re-emitted a sp= that was already in the record — a repeated
         // tag, which this same parser correctly calls an error.
-        value: `${r.raw.replace(/;\s*$/, '')}; np=reject`,
-        caveat:
-          'Safe for almost every domain, because it only applies to names that resolve ' +
+        `${r.raw.replace(/;\s*$/, '')}; np=reject`,
+        'Safe for almost every domain, because it only applies to names that resolve ' +
           'to nothing. Check first that no sender uses a subdomain that exists only as ' +
           'a bare MX or TXT name.',
-      },
+      ),
     });
   }
 
@@ -873,17 +906,16 @@ function modernFindings(input: CheckInput): Finding[] {
         'Mail sent to you can be downgraded to an unencrypted connection by an attacker ' +
         'on the network. MTA-STS closes that hole. Optional, but it is what separates a ' +
         'well-run mail domain from an average one.',
-      fix: {
-        kind: 'record',
-        host: `_mta-sts.${domain}`,
-        type: 'TXT',
-        value: `v=STSv1; id=${new Date().toISOString().slice(0, 10).replace(/-/g, '')}000000`,
-        caveat:
-          `The record alone does nothing — you must also serve a policy file at ` +
+      fix: txtFix(
+        domain,
+        `_mta-sts.${domain}`,
+        `v=STSv1; id=${new Date().toISOString().slice(0, 10).replace(/-/g, '')}000000`,
+        `The record alone does nothing — you must also serve a policy file at ` +
           `https://mta-sts.${domain}/.well-known/mta-sts.txt listing your MX hosts. ` +
           'Start with mode: testing, and only move to enforce once reports confirm ' +
           'nothing is failing.',
-      },
+        mtaSts.lookup.cnameChain,
+      ),
     });
   }
 
@@ -903,13 +935,13 @@ function modernFindings(input: CheckInput): Finding[] {
         'TLS-RPT asks other mail providers to tell you when encrypted delivery to your ' +
         'domain fails. It is the feedback loop that makes MTA-STS safe to enforce — ' +
         'without it you are switching on enforcement blind.',
-      fix: {
-        kind: 'record',
-        host: `_smtp._tls.${domain}`,
-        type: 'TXT',
-        value: `v=TLSRPTv1; rua=mailto:tlsrpt@${domain}`,
-        caveat: 'The mailbox must exist. Reports arrive daily as JSON attachments.',
-      },
+      fix: txtFix(
+        domain,
+        `_smtp._tls.${domain}`,
+        `v=TLSRPTv1; rua=mailto:tlsrpt@${domain}`,
+        'The mailbox must exist. Reports arrive daily as JSON attachments.',
+        tlsRpt.lookup.cnameChain,
+      ),
     });
   }
 

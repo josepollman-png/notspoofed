@@ -59,6 +59,23 @@ const example = `{
   <h2>Response</h2>
   <pre><code>{example}</code></pre>
 
+  <h2>Fixes</h2>
+  <p>
+    A finding's <code>fix</code> is <code>null</code> or one of two kinds.
+    <code>"record"</code> is a DNS record to publish at <code>host</code>, ready to paste.
+    <code>"action"</code> is a list of <code>steps</code>.
+  </p>
+  <p>
+    An <code>"action"</code> fix may also carry <code>managedRecord</code>
+    (<code>host</code>, <code>target</code>, <code>type</code>, <code>value</code>,
+    <code>caveat</code>). It is set when the record that needs changing sits at a name
+    that is a CNAME, such as a <code>_dmarc</code> name aliased to a DMARC provider. DNS
+    allows nothing else at a CNAME, so the record cannot be published at
+    <code>host</code>: <code>value</code> is what the record at <code>target</code>, the
+    end of the alias chain, should read. Otherwise <code>managedRecord</code> is
+    <code>null</code>.
+  </p>
+
   <h2>Errors</h2>
   <table>
     <thead><tr><th>Status</th><th><code>error</code></th><th>Meaning</th></tr></thead>
