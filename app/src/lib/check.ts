@@ -29,11 +29,25 @@ export class InvalidDomainError extends Error {
   }
 }
 
+/** True for a name that is itself a public suffix, such as `gov.uk`, `co.uk` or `com`. */
+export function isPublicSuffix(domain: string): boolean {
+  const parsed = parse(domain, { allowPrivateDomains: false });
+  return !parsed.domain && parsed.isIcann === true && parsed.publicSuffix === domain;
+}
+
+export interface NormaliseOptions {
+  /**
+   * Accept a public suffix itself (`gov.uk`). The checker does, and then checks only
+   * one that publishes SPF or DMARC; the single-purpose tools do not.
+   */
+  allowPublicSuffix?: boolean;
+}
+
 /**
  * Accepts what people actually paste — a bare domain, a URL, or an email address —
  * and returns the registrable hostname, or throws.
  */
-export function normaliseDomain(input: string): string {
+export function normaliseDomain(input: string, options: NormaliseOptions = {}): string {
   let value = input.trim().toLowerCase();
   if (value === '') throw new InvalidDomainError('Enter a domain name.');
 
@@ -56,6 +70,17 @@ export function normaliseDomain(input: string): string {
   if (parsed.isIp) {
     throw new InvalidDomainError('Enter a domain name, not an IP address.');
   }
+  // A public suffix is spelled correctly and is public: gov.uk publishes DMARC. It was
+  // rejected below with "check the spelling", which was wrong on both counts.
+  if (!parsed.domain && parsed.isIcann && parsed.publicSuffix === value && /^[a-z0-9.-]+$/.test(value)) {
+    if (options.allowPublicSuffix) return value;
+    throw new InvalidDomainError(
+      `"${value}" is a public suffix — names are registered under it, like ` +
+      `example.${value} — and public suffixes are not checked here. Enter a domain ` +
+      'registered under it.',
+    );
+  }
+
   // Requires a real ICANN public suffix, which excludes localhost, .local, .internal,
   // .test, single-label names, and anything else that only resolves inside a network.
   if (!parsed.domain || !parsed.isIcann) {
@@ -88,6 +113,8 @@ export interface CheckResult {
   nullMx: boolean;
   /** The CNAME chain at the checked name, when it is an alias. Usually empty. */
   domainCnameChain: string[];
+  /** The checked name is itself a public suffix, such as gov.uk. */
+  publicSuffix: boolean;
   report: Report;
   /** Raw DNS queries issued. Surfaced so the cost of a check is never a mystery. */
   queryCount: number;
@@ -107,7 +134,8 @@ export interface CheckOptions extends ResolverOptions {
 }
 
 export async function runCheck(input: string, options: CheckOptions = {}): Promise<CheckResult> {
-  const domain = normaliseDomain(input);
+  const domain = normaliseDomain(input, { allowPublicSuffix: true });
+  const publicSuffix = isPublicSuffix(domain);
   const started = Date.now();
 
   // One resolver for the whole check, so its cache and budget are shared. The DKIM
@@ -120,12 +148,25 @@ export async function runCheck(input: string, options: CheckOptions = {}): Promi
 
   const spf = await evaluateSpf(dns, domain);
 
+  // A public suffix is checked only when it publishes a policy of its own. One that
+  // publishes neither SPF nor DMARC — `com`, nearly every `co.xx` — has nothing to
+  // report, and a page of "No SPF record" findings for it would be noise. An
+  // unanswered lookup is not "publishes nothing", so it does not count against it.
+  const earlyDmarc = publicSuffix ? await checkDmarc(dns, domain) : null;
+  if (earlyDmarc && !spf.found && !spf.lookupError && earlyDmarc.status === 'absent') {
+    throw new InvalidDomainError(
+      `"${domain}" is a public suffix — names are registered under it, like ` +
+      `example.${domain} — and it publishes no SPF or DMARC record of its own, so ` +
+      'there is nothing to check. Enter a domain registered under it.',
+    );
+  }
+
   // Everything below is independent of SPF and of each other. MTA-STS and DNSSEC
   // reach outside DNS (HTTPS policy fetch, DoH) and both fail soft, so a slow or
   // broken third party degrades one section rather than the whole report.
   const [dkim, dmarc, mtaSts, tlsRpt, bimi, dnssec, mxAnswer, alias] = await Promise.all([
     checkDkim(dns, domain, options.selectors ?? []),
-    checkDmarc(dns, domain),
+    earlyDmarc ?? checkDmarc(dns, domain),
     checkMtaSts(dns, domain),
     checkTlsRpt(dns, domain),
     checkBimi(dns, domain),
@@ -144,10 +185,12 @@ export async function runCheck(input: string, options: CheckOptions = {}): Promi
   const domainCnameChain = alias.chain;
   const report = buildReport({
     domain, spf, flatten, dkim, dmarc, mtaSts, tlsRpt, bimi, dnssec, mx, nullMx, domainCnameChain,
+    publicSuffix,
   });
 
   return {
-    domain, spf, flatten, dkim, dmarc, mtaSts, tlsRpt, bimi, dnssec, mx, nullMx, domainCnameChain, report,
+    domain, spf, flatten, dkim, dmarc, mtaSts, tlsRpt, bimi, dnssec, mx, nullMx, domainCnameChain,
+    publicSuffix, report,
     queryCount: dns.queryCount,
     elapsedMs: Date.now() - started,
   };

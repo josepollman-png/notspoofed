@@ -90,7 +90,7 @@ const example = `{
     <thead><tr><th>Status</th><th><code>error</code></th><th>Meaning</th></tr></thead>
     <tbody>
       <tr><td>400</td><td><code>missing_domain</code></td><td>No <code>domain</code> parameter.</td></tr>
-      <tr><td>400</td><td><code>invalid_domain</code></td><td>Not a public domain name — IP addresses and internal names are rejected.</td></tr>
+      <tr><td>400</td><td><code>invalid_domain</code></td><td>Not a public domain name — IP addresses and internal names are rejected. A public suffix such as <code>gov.uk</code> is checked when it publishes SPF or DMARC, and rejected when it publishes neither.</td></tr>
       <tr><td>429</td><td><code>rate_limited</code></td><td>Over the limit. <code>Retry-After</code> is set.</td></tr>
       <tr><td>502</td><td><code>check_failed</code></td><td>Usually a DNS timeout. Retrying is reasonable.</td></tr>
     </tbody>

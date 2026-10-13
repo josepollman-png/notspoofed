@@ -43,6 +43,8 @@ export interface CheckInput {
    * SPF included, belong to the target, and an SPF fix cannot be published at it.
    */
   domainCnameChain?: string[];
+  /** The checked name is itself a public suffix, such as gov.uk. */
+  publicSuffix?: boolean;
 }
 
 /**
@@ -1244,8 +1246,55 @@ export interface Report {
   passing: boolean;
 }
 
+/**
+ * A public suffix (gov.uk, co.uk) is checked only when it publishes SPF or DMARC, and
+ * the report says what is different about one. RFC 9989 brought Public Suffix Domains
+ * into DMARC proper (it obsoletes RFC 9091): a PSD's record covers names under it that
+ * publish none (§4.10.1), and a Public Suffix Operator that publishes one MUST mark it
+ * psd=y (§5.2). Without the tag, the §4.10.2 tree walk picks the record with the fewest
+ * labels as the organizational domain, so separately run names under the suffix share
+ * one organizational domain unless they publish psd=n themselves.
+ */
+function publicSuffixFindings({ domain, dmarc, publicSuffix }: CheckInput): Finding[] {
+  if (!publicSuffix) return [];
+  const r = dmarc.record;
+  const unmarked = r !== null && r.psd !== 'y';
+  return [{
+    id: 'public-suffix',
+    severity: 'info',
+    title: `${domain} is a public suffix`,
+    detail:
+      `${domain} is on the Public Suffix List: names are registered under it, the way ` +
+      `example.${domain} is. ` +
+      (r
+        ? `Its DMARC record also applies to names under it that publish none of their own ` +
+          '(RFC 9989 §4.10.1). '
+        : '') +
+      `The checks below treat it like any other domain, so the findings about its own ` +
+      `mail matter only if mail is sent as ${domain} itself.` +
+      (unmarked
+        ? ` Its DMARC record has no psd=y. RFC 9989 §5.2 says a Public Suffix Operator ` +
+          'that publishes DMARC MUST include it; without it, receivers following RFC 9989 ' +
+          `take ${domain} as the organizational domain of the names under it (§4.10.2), so ` +
+          'they count as one organization for relaxed alignment unless they publish psd=n.'
+        : ''),
+    fix: unmarked
+      ? {
+          kind: 'action',
+          steps: [
+            `If the names under ${domain} are run by separate organizations, add psd=y to ` +
+              `the record at _dmarc.${domain} (RFC 9989 §5.2).`,
+            `If ${domain} and the names under it are one organization, nothing needs to ` +
+              'change; psd=n would say so explicitly.',
+          ],
+        }
+      : undefined,
+  }];
+}
+
 export function buildReport(input: CheckInput): Report {
   const findings = [
+    ...publicSuffixFindings(input),
     ...spfFindings(input),
     ...dkimFindings(input),
     ...dmarcFindings(input),

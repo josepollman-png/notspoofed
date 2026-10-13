@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { InvalidDomainError, normaliseDomain } from '../src/lib/check.js';
+import { InvalidDomainError, isPublicSuffix, normaliseDomain } from '../src/lib/check.js';
 
 describe('accepts what people actually paste', () => {
   it.each([
@@ -50,5 +50,32 @@ describe('rejects everything that is not a public domain', () => {
   it('explains itself rather than throwing a bare error', () => {
     expect(() => normaliseDomain('127.0.0.1')).toThrow(/not an IP address/);
     expect(() => normaliseDomain('localhost')).toThrow(/not a public domain/);
+  });
+});
+
+describe('public suffixes', () => {
+  // gov.uk is spelled correctly and publishes DMARC; it used to be rejected with
+  // "Check the spelling". The checker accepts a public suffix (and checks it only if
+  // it publishes SPF or DMARC); the single-purpose tools keep rejecting it, honestly.
+  it('the checker accepts one', () => {
+    expect(normaliseDomain('gov.uk', { allowPublicSuffix: true })).toBe('gov.uk');
+    expect(normaliseDomain('https://co.uk/', { allowPublicSuffix: true })).toBe('co.uk');
+  });
+
+  it('anything else says what it is, not that it is misspelled', () => {
+    expect(() => normaliseDomain('gov.uk')).toThrow(/is a public suffix/);
+    expect(() => normaliseDomain('gov.uk')).not.toThrow(/spelling/);
+  });
+
+  it('still rejects names that are not public at all', () => {
+    for (const name of ['localhost', 'router.local', 'thing.test', 'no-dots']) {
+      expect(() => normaliseDomain(name, { allowPublicSuffix: true }), name).toThrow(InvalidDomainError);
+    }
+  });
+
+  it('knows a suffix from a registered name', () => {
+    expect(isPublicSuffix('gov.uk')).toBe(true);
+    expect(isPublicSuffix('com')).toBe(true);
+    expect(isPublicSuffix('example.gov.uk')).toBe(false);
   });
 });

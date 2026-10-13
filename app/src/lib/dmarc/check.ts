@@ -72,6 +72,11 @@ export interface DmarcRecord {
   nonExistentPolicy: Policy | null;
   /** The policy that actually applies to the queried name. */
   effectivePolicy: Policy | null;
+  /**
+   * `psd=` (RFC 9989 §4.7): `y` from a Public Suffix Operator, `n` for a domain that is
+   * its own organizational domain, `u` or null (absent) for neither stated.
+   */
+  psd: 'y' | 'n' | 'u' | null;
   /** Which tag `effectivePolicy` came from, so findings can name the right one. */
   appliedTag: 'p' | 'sp' | 'np';
   /**
@@ -175,6 +180,13 @@ export function parseDmarcRecord(raw: string, foundAt: string, inherited: boolea
   const subdomainPolicy = readPolicy('sp');
   const nonExistentPolicy = readPolicy('np');
 
+  let psd: 'y' | 'n' | 'u' | null = null;
+  if (tags.has('psd')) {
+    const v = (tags.get('psd') ?? '').toLowerCase();
+    if (v === 'y' || v === 'n' || v === 'u') psd = v;
+    else errors.push(`psd=${tags.get('psd')} must be y, n or u`);
+  }
+
   if (!tags.has('p')) errors.push('p= is required');
 
   // t=y means "apply one level below what p= says". Anything other than y/n is a
@@ -250,6 +262,7 @@ export function parseDmarcRecord(raw: string, foundAt: string, inherited: boolea
     policy,
     subdomainPolicy,
     nonExistentPolicy,
+    psd,
     effectivePolicy,
     appliedTag,
     testMode,

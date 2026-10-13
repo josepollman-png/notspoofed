@@ -18,6 +18,9 @@ export function apiBody(r: CheckResult, checkedAt = new Date()) {
   return {
     version: API_VERSION,
     domain: r.domain,
+    // Additive. True when the checked name is itself a public suffix (gov.uk), which
+    // is checked only when it publishes SPF or DMARC.
+    publicSuffix: r.publicSuffix,
     checkedAt: checkedAt.toISOString(),
     passing: r.report.passing,
     counts: r.report.counts,
@@ -93,6 +96,7 @@ export function apiBody(r: CheckResult, checkedAt = new Date()) {
       policy: r.dmarc.record?.policy ?? null,
       subdomainPolicy: r.dmarc.record?.subdomainPolicy ?? null,
       nonExistentPolicy: r.dmarc.record?.nonExistentPolicy ?? null,
+      psd: r.dmarc.record?.psd ?? null,
       effectivePolicy: r.dmarc.record?.effectivePolicy ?? null,
       // Which of p=/sp=/np= produced effectivePolicy. Additive, so no version bump:
       // a consumer that does not read it sees exactly what it saw before.
