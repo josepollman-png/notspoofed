@@ -103,6 +103,26 @@ function isNonSending(input: CheckInput): boolean {
   return input.spf.sendsNoMail;
 }
 
+/**
+ * Terms a record lists more than once. Harmless — a repeated ip4 costs no lookup and
+ * changes no result — so a suggested record keeps them exactly as published rather than
+ * silently editing more than the fix is about. centos.org lists three of its addresses
+ * twice, which is easy to see once the missing space is put back.
+ */
+function duplicateNote(record: string): string {
+  const seen = new Set<string>();
+  const twice = new Set<string>();
+  for (const t of record.trim().split(/\s+/).slice(1)) {
+    const key = t.toLowerCase();
+    if (seen.has(key)) twice.add(t);
+    seen.add(key);
+  }
+  if (twice.size === 0) return '';
+  const list = [...twice];
+  return ` The record also lists ${list.join(', ')} more than once. Duplicates are ` +
+    `harmless and cost no lookups, so they are left as published, but ${list.length === 1 ? 'the extra copy' : 'the extra copies'} can go.`;
+}
+
 /** Replace one term of an SPF record, matching whole tokens only. */
 function replaceTerm(record: string, term: string, replacement: string): string {
   const tokens = record.trim().split(/\s+/);
@@ -270,7 +290,7 @@ function spfFindings({ domain, spf, flatten, domainCnameChain = [] }: CheckInput
         flatten.record,
         `This replaces ${flatten.flattened.join(', ')} with the addresses they ` +
           'resolve to right now, bringing you to ' +
-          `${flatten.lookupsAfter} lookups. ` + flatten.warnings.join(' '),
+          `${flatten.lookupsAfter} ${flatten.lookupsAfter === 1 ? 'lookup' : 'lookups'}. ` + flatten.warnings.join(' '),
         domainCnameChain,
       );
     } else {
@@ -439,7 +459,7 @@ function spfFindings({ domain, spf, flatten, domainCnameChain = [] }: CheckInput
               spf.record.replace(p.term, p.suggestion),
               `Replaces ${p.term} with ${p.suggestion}. If your DNS host shows the record ` +
                 'as several quoted strings, end each string with a space, or start the next ' +
-                'one with one.',
+                'one with one.' + duplicateNote(spf.record.replace(p.term, p.suggestion)),
               domainCnameChain,
             )
           : undefined,

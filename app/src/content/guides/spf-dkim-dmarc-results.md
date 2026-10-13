@@ -6,7 +6,7 @@ answer: "DMARC passes when SPF or DKIM passes and the domain it passed for match
 question: "What does SPF pass, DKIM fail, DMARC pass mean?"
 category: "DMARC"
 published: 2026-09-23
-updated: 2026-10-06
+updated: 2026-10-13
 order: 31
 faq:
   - q: "What does spf pass dkim fail dmarc pass mean?"
@@ -29,11 +29,13 @@ report on a domain. DMARC reports on whether either of those domains was *yours*
 
 ## The rule behind every row
 
-[RFC 7489 §4.2](https://www.rfc-editor.org/rfc/rfc7489#section-4.2) states it in two
-lines: a message satisfies DMARC if at least one mechanism produces a pass, *and*
-produces it for an identifier that is in alignment with the From: domain.
-[RFC 9989](https://www.rfc-editor.org/rfc/rfc9989), which replaced RFC 7489 in 2026, keeps
-the rule unchanged.
+[RFC 9989 §5.3.5](https://www.rfc-editor.org/rfc/rfc9989#section-5.3.5) states it in one
+line: a message passes DMARC if one or more of its authenticated identifiers align with
+the From: domain. An authenticated identifier is a domain that SPF or DKIM actually
+passed ([§3.2.1](https://www.rfc-editor.org/rfc/rfc9989#section-3.2.1)), so the rule needs
+a pass, *and* a pass for a domain that is in alignment. RFC 9989 replaced RFC 7489 in May
+2026 and kept the rule from
+[RFC 7489 §4.2](https://www.rfc-editor.org/rfc/rfc7489#section-4.2) unchanged.
 
 Each result reports on a different domain, and the header names each one:
 
@@ -45,7 +47,8 @@ Each result reports on a different domain, and the header names each one:
 
 DMARC passes when `header.from` matches the `smtp.mailfrom` domain of a passing SPF
 check, or the `header.d` domain of a passing DKIM signature. Under the default relaxed
-alignment ([RFC 7489 §3.1](https://www.rfc-editor.org/rfc/rfc7489#section-3.1)),
+alignment ([RFC 9989 §3.2.10.1](https://www.rfc-editor.org/rfc/rfc9989#section-3.2.10.1),
+with worked examples in [§4.4](https://www.rfc-editor.org/rfc/rfc9989#section-4.4)),
 `bounce.example.com` counts as a match for `example.com`.
 
 That comparison is the whole of what DMARC adds. SPF never looks at the From: header,
@@ -69,8 +72,9 @@ which is why [SPF without DMARC does not stop spoofing](/spf-vs-dmarc).
 
 "Per your policy" means what your DMARC record's `p=` asks for: `none` delivers,
 `quarantine` sends to spam, `reject` bounces. Receivers may deviate either way, which
-[RFC 7489 §6.7](https://www.rfc-editor.org/rfc/rfc7489#section-6.7) allows explicitly:
-"Final disposition of a message is always a matter of local policy."
+[RFC 9989 §5.4](https://www.rfc-editor.org/rfc/rfc9989#section-5.4) allows explicitly:
+"The final handling of any message is always a matter of local policy." (RFC 7489 said
+the same in [§6.7](https://www.rfc-editor.org/rfc/rfc7489#section-6.7).)
 
 ## SPF pass, DKIM pass, DMARC fail
 

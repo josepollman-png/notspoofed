@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { spfSummary } from '../src/lib/summary.js';
 import { checkDkim } from '../src/lib/dkim/check.js';
 import { checkDmarc } from '../src/lib/dmarc/check.js';
 import { checkBimi, checkMtaSts, checkTlsRpt } from '../src/lib/modern/check.js';
@@ -68,6 +69,19 @@ describe('centos.org: two terms run together', () => {
     const value = fix?.kind === 'record' ? fix.value : '';
     expect(value).toContain('ip6:2620:52:3::214 ip4:8.43.84.199');
     expect(parseSpf(value).errors).toEqual([]);
+  });
+
+  it('keeps the duplicate terms as published, and says they can go', async () => {
+    const { findings } = await reportFor({ TXT: { 'centos.org': [CENTOS] } }, 'centos.org');
+    const fix = findings.find((f) => f.id === 'spf-syntax')?.fix;
+    if (fix?.kind !== 'record') throw new Error('expected a record fix');
+    // Only the missing space changes: every other term, duplicates included, stays.
+    expect(fix.value).toBe(CENTOS.replace(BAD_TERM, 'ip6:2620:52:3::214 ip4:8.43.84.199'));
+    expect(fix.value.match(/ip4:8\.43\.84\.213/g)).toHaveLength(2);
+    expect(fix.caveat).toContain(
+      'The record also lists ip4:8.43.84.213, ip6:2620:52:3::214, ip4:8.43.84.214 more than once.',
+    );
+    expect(fix.caveat).toContain('Duplicates are harmless and cost no lookups');
   });
 });
 
@@ -165,5 +179,13 @@ describe('the neighbouring permerror cases', () => {
     const { spf, findings } = await reportFor({ TXT: { 'example.com': ['v=spf1 -all redirect=_spf.example.net'] } });
     expect(spf.permerror).toBeNull();
     expect(findings.find((f) => f.id === 'spf-dead-terms')?.severity).toBe('warning');
+  });
+});
+
+describe('the report summary line', () => {
+  it('says "1 lookup", not "1 lookups" (centos.org)', async () => {
+    const { spf } = await reportFor({ TXT: { 'centos.org': [CENTOS] }, MX: { 'centos.org': [] } }, 'centos.org');
+    expect(spfSummary(spf)).toBe('permerror (1 lookup counted)');
+    expect(spfSummary({ ...spf, lookupCount: 3 })).toBe('permerror (3 lookups counted)');
   });
 });

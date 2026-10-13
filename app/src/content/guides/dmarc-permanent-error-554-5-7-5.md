@@ -6,7 +6,7 @@ answer: "554 5.7.5 means the receiver could not get a usable DMARC result for yo
 question: "What does 554 5.7.5 permanent error evaluating DMARC policy mean?"
 category: "Error messages"
 published: 2026-08-14
-updated: 2026-09-22
+updated: 2026-10-13
 order: 18
 faq:
   - q: "Does 554 5.7.5 mean my email was hacked?"
@@ -45,10 +45,14 @@ order because that is roughly how often each is the real cause.
 The most common cause, and the least obvious, because your record looks perfect when you
 view it in isolation.
 
-[RFC 7489 §6.6.3](https://www.rfc-editor.org/rfc/rfc7489#section-6.6.3) is explicit: if
-more than one record starting `v=DMARC1` is found at `_dmarc`, the receiver **discards
-them all and treats the domain as having no DMARC record at all.** Some receivers go
-further and report the ambiguity as a permanent error, which is what you are seeing.
+[RFC 9989 §4.10](https://www.rfc-editor.org/rfc/rfc9989#section-4.10), which replaced
+RFC 7489 in May 2026, is explicit: if more than one record starting `v=DMARC1` is found
+at a `_dmarc` name, the receiver **discards them all.** For your main domain that means
+it is treated as having no DMARC record at all; a subdomain falls back to its parent's
+policy. Under RFC 7489
+([§6.6.3](https://www.rfc-editor.org/rfc/rfc7489#section-6.6.3)) two records ended policy
+discovery outright, for a subdomain too. Some receivers go further and report the
+ambiguity as a permanent error, which is what you are seeing.
 
 This almost always comes from history — a previous provider, a migration, a DMARC
 vendor's onboarding wizard, or two people fixing the same problem a year apart. Nobody

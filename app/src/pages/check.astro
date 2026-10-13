@@ -5,6 +5,7 @@ import { affiliateFindingId, dmarcAffiliate } from '../lib/affiliate.js';
 import Base from '../layouts/Base.astro';
 import { InvalidDomainError, runCheck, type CheckResult } from '../lib/check.js';
 import { detectPlatforms } from '../lib/platform.js';
+import { spfSummary } from '../lib/summary.js';
 import { clientIp, rateLimit, RATE_LIMIT } from '../lib/ratelimit.js';
 import { absoluteUrl, siteOrigin } from '../lib/site.js';
 import { track } from '../lib/stats.js';
@@ -127,10 +128,7 @@ const viaCname = (chain: string[]) =>
         </p>
         <p class="meta">
           {result.queryCount} DNS queries in {result.elapsedMs}ms ·
-          SPF {result.spf.lookupError ? 'could not be checked'
-            : !result.spf.found ? 'not published'
-            : result.spf.permerror ? `permerror (${result.spf.lookupCount} lookups counted)`
-            : `${result.spf.lookupCount}/10 lookups`} ·
+          SPF {spfSummary(result.spf)} ·
           DKIM {result.dkim.keys.length > 0 ? `${result.dkim.keys.length} key${result.dkim.keys.length === 1 ? '' : 's'}` : 'none found'} ·
           DMARC {result.dmarc.record?.effectivePolicy ? `p=${result.dmarc.record.effectivePolicy}`
             : result.dmarc.status === 'unknown' ? 'could not be checked' : 'not published'} ·
