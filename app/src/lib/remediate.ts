@@ -642,9 +642,12 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
       severity: 'warning',
       title: 'DMARC is set to p=none — monitoring only',
       detail:
-        'Your DMARC record collects reports but asks receivers to take no action, so ' +
-        'forged mail is still delivered. This is the correct place to start, but it ' +
-        'is not protection, and it does not satisfy bulk sender requirements on its own.',
+        // Gmail and Yahoo both accept p=none for their bulk-sender DMARC rule, and the
+        // guides here say so with sources (google-yahoo-sender-requirements). The old
+        // "does not satisfy bulk sender requirements on its own" read as the opposite.
+        'Your DMARC record collects reports but asks receivers to take no action. This ' +
+        'is the correct place to start, and Gmail and Yahoo accept p=none for their ' +
+        'bulk-sender DMARC rule. But it is not protection: forged mail is still delivered.',
       fix: dmarcFix(
         `_dmarc.${domain}`,
         r.raw.replace(/\bp\s*=\s*none\b/i, 'p=quarantine'),

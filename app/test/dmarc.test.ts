@@ -308,3 +308,17 @@ describe('missing and duplicate records', () => {
     expect((await checkDmarc(dns, 'e.com')).record?.policy).toBe('reject');
   });
 });
+
+describe('the p=none finding', () => {
+  // Gmail's sender guidelines say the bulk-sender DMARC policy "can be set to none", and
+  // Yahoo asks for "at least p=none". The text used to say p=none "does not satisfy bulk
+  // sender requirements on its own", which contradicted both and our own guides.
+  it('says p=none meets the Gmail and Yahoo rule, and that it is still not protection', async () => {
+    const dmarc = await checkDmarc(
+      new FakeDns({ TXT: { '_dmarc.e.com': ['v=DMARC1; p=none; rua=mailto:d@e.com'] } }), 'e.com',
+    );
+    const f = dmarcFindings({ domain: 'e.com', dmarc, mx: [] }).find((x) => x.id === 'dmarc-p-none');
+    expect(f?.detail).toMatchInlineSnapshot(`"Your DMARC record collects reports but asks receivers to take no action. This is the correct place to start, and Gmail and Yahoo accept p=none for their bulk-sender DMARC rule. But it is not protection: forged mail is still delivered."`);
+    expect(f?.detail).not.toMatch(/not satisfy|does not meet|not enough/i);
+  });
+});
