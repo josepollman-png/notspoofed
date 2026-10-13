@@ -66,7 +66,7 @@ from a checker.
 keeps aggregate counters only, on an allow-list of paths. The site promises this.
 
 **`findings[].id` is a public API contract.** Adding one is fine. Renaming or removing
-one means bumping `API_VERSION` in `src/pages/api/check.ts`.
+one means bumping `API_VERSION` in `src/lib/api-body.ts`.
 
 ## Out of scope
 

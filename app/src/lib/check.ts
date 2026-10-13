@@ -1,7 +1,7 @@
 import { parse } from 'tldts';
 import { checkDkim } from './dkim/check.js';
 import { checkDmarc } from './dmarc/check.js';
-import { DnsResolver, type MxRecord, type ResolverOptions } from './dns/resolver.js';
+import { DnsResolver, type DnsBackend, type MxRecord, type ResolverOptions } from './dns/resolver.js';
 import { checkBimi, checkDnssec, checkMtaSts, checkTlsRpt } from './modern/check.js';
 import { buildReport, type Report } from './remediate.js';
 import { evaluateSpf } from './spf/evaluate.js';
@@ -94,6 +94,13 @@ export interface CheckResult {
 export interface CheckOptions extends ResolverOptions {
   /** Selectors the user supplied because we could not guess theirs. */
   selectors?: string[];
+  /**
+   * Answer DNS from this backend instead of a live resolver. For replaying recorded
+   * answers in tests and before/after comparisons; production never sets it.
+   */
+  dns?: DnsBackend;
+  /** Stands in for the DoH DNSSEC lookup, for the same reason. */
+  dnssec?: (domain: string) => Promise<DnssecResult>;
 }
 
 export async function runCheck(input: string, options: CheckOptions = {}): Promise<CheckResult> {
@@ -102,7 +109,7 @@ export async function runCheck(input: string, options: CheckOptions = {}): Promi
 
   // One resolver for the whole check, so its cache and budget are shared. The DKIM
   // sweep alone is ~45 queries, hence the headroom over the resolver default.
-  const dns = new DnsResolver({
+  const dns = options.dns ?? new DnsResolver({
     maxQueries: 250,
     deadlineMs: 20_000,
     ...options,
@@ -119,7 +126,7 @@ export async function runCheck(input: string, options: CheckOptions = {}): Promi
     checkMtaSts(dns, domain),
     checkTlsRpt(dns, domain),
     checkBimi(dns, domain),
-    checkDnssec(domain),
+    (options.dnssec ?? checkDnssec)(domain),
     dns.mx(domain),
   ]);
 

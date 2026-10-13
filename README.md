@@ -141,7 +141,7 @@ notspoofed.com; replace it, since IndexNow validates the key against the submitt
 | `src/lib/remediate.ts` | Findings → copy-paste fixes. The actual product |
 | `src/lib/check.ts` | Orchestration and input validation |
 | `src/pages/robots.txt.ts` | Disallows `/check` and `/api/check` — see the crawl-trap note below |
-| `src/pages/api/check.ts` | Public JSON API. Hand-built response shape, versioned |
+| `src/pages/api/check.ts` | Public JSON API route; the hand-built, versioned body is `src/lib/api-body.ts` |
 | `src/content/guides/` | Explainer content — the pages actually meant to rank |
 | `src/lib/headers/` | Header analyzer — parsing and alignment analysis, **browser-side** |
 | `src/lib/ip/` | Sending-IP diagnostic — blocklists, FCrDNS, ASN |
