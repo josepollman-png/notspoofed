@@ -79,7 +79,14 @@ export interface DmarcRecord {
    * stated policy, so a record can read `p=reject` and reject nothing.
    */
   testMode: boolean;
+  /**
+   * The percentage policy applies to: the pct= value, or 100 when the tag is absent —
+   * RFC 7489's default, assumed here because RFC 9989 removed the tag and a record
+   * without it applies its policy to all failing mail under either.
+   */
   pct: number;
+  /** pct= as published, or null when the record has no (valid) pct= tag. */
+  pctTag: number | null;
   adkim: Alignment;
   aspf: Alignment;
   rua: DmarcUri[];
@@ -181,12 +188,14 @@ export function parseDmarcRecord(raw: string, foundAt: string, inherited: boolea
   }
 
   let pct = 100;
+  let pctTag: number | null = null;
   if (tags.has('pct')) {
     const n = Number(tags.get('pct'));
     if (!Number.isInteger(n) || n < 0 || n > 100) {
       errors.push(`pct=${tags.get('pct')} must be an integer from 0 to 100`);
     } else {
       pct = n;
+      pctTag = n;
     }
   }
 
@@ -245,6 +254,7 @@ export function parseDmarcRecord(raw: string, foundAt: string, inherited: boolea
     appliedTag,
     testMode,
     pct,
+    pctTag,
     adkim: readAlignment('adkim'),
     aspf: readAlignment('aspf'),
     rua: readUris('rua'),

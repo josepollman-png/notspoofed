@@ -322,3 +322,52 @@ describe('the p=none finding', () => {
     expect(f?.detail).not.toMatch(/not satisfy|does not meet|not enough/i);
   });
 });
+
+describe('suggested records and the tags RFC 9989 removed', () => {
+  // salesforce.com, 13 October 2026: dmarc-deprecated-tags said "pct is deprecated" and
+  // the np= fix on the same page handed back a record still containing pct=100.
+  const findingsFor = async (raw: string) => {
+    const dmarc = await checkDmarc(new FakeDns({ TXT: { '_dmarc.e.com': [raw] } }), 'e.com');
+    return dmarcFindings({ domain: 'e.com', dmarc, mx: [] });
+  };
+  const suggested = (findings: Awaited<ReturnType<typeof findingsFor>>) =>
+    findings.flatMap((f) => (f.fix?.kind === 'record' ? [f.fix] : []));
+
+  it('leaves pct=100 out of every suggestion, and says so (salesforce.com shape)', async () => {
+    const findings = await findingsFor('v=DMARC1;p=reject;fo=1:d:s;pct=100;rua=mailto:d@e.com');
+    expect(findings.find((f) => f.id === 'dmarc-deprecated-tags')?.title).toBe('pct is deprecated');
+
+    const np = suggested(findings).find((f) => f.value.includes('np=reject'));
+    expect(np?.value).toBe('v=DMARC1;p=reject;fo=1:d:s;rua=mailto:d@e.com; np=reject');
+    expect(np?.caveat).toContain('It also leaves out pct=100');
+  });
+
+  it('drops pct=100, rf and ri from every record-building fix alike', async () => {
+    const findings = await findingsFor('v=DMARC1; p=none; sp=none; pct=100; rf=afrf; ri=3600');
+    const fixes = suggested(findings);
+    expect(fixes.length).toBeGreaterThan(1);
+    for (const fix of fixes) {
+      expect(fix.value, fix.value).not.toMatch(/\b(pct|rf|ri)=/);
+      const reparsed = parseDmarcRecord(fix.value, 'e.com', false);
+      expect(reparsed.errors).toEqual([]);
+      expect(reparsed.deprecatedTags).toEqual([]);
+    }
+    expect(findings.find((f) => f.id === 'dmarc-deprecated-tags')?.detail)
+      .toContain('every record suggested on this page already leaves them out');
+  });
+
+  it('keeps a pct below 100 where it still changes the policy, and removes it in the pct fix', async () => {
+    const findings = await findingsFor('v=DMARC1; p=quarantine; pct=25; rua=mailto:d@e.com');
+    expect(findings.some((f) => f.id === 'dmarc-deprecated-tags')).toBe(false);
+    expect(findings.find((f) => f.id === 'dmarc-quarantine')?.fix).toMatchObject({ value: 'v=DMARC1; p=reject; pct=25; rua=mailto:d@e.com' });
+    expect(findings.find((f) => f.id === 'dmarc-pct')?.fix).toMatchObject({ value: 'v=DMARC1; p=quarantine; rua=mailto:d@e.com' });
+  });
+
+  it('pctTag is null when the record has no pct=, while pct reads the default 100', async () => {
+    const none = parseDmarcRecord('v=DMARC1; p=none', 'e.com', false);
+    expect(none.pct).toBe(100);
+    expect(none.pctTag).toBeNull();
+    const some = parseDmarcRecord('v=DMARC1; p=none; pct=100', 'e.com', false);
+    expect(some.pctTag).toBe(100);
+  });
+});

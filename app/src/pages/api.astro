@@ -76,6 +76,15 @@ const example = `{
     <code>null</code>.
   </p>
 
+  <h2>DMARC fields</h2>
+  <p>
+    <code>dmarc.pct</code> is the percentage the policy applies to. It reads
+    <code>100</code> when the record has no <code>pct=</code> tag, the RFC 7489 default:
+    RFC 9989 removed the tag, and a record without it applies its policy to all failing
+    mail under either. <code>dmarc.pctTag</code> is the tag as published, or
+    <code>null</code> when there is none. Read it to tell the two apart.
+  </p>
+
   <h2>Errors</h2>
   <table>
     <thead><tr><th>Status</th><th><code>error</code></th><th>Meaning</th></tr></thead>

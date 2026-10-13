@@ -98,7 +98,11 @@ export function apiBody(r: CheckResult, checkedAt = new Date()) {
       // a consumer that does not read it sees exactly what it saw before.
       appliedTag: r.dmarc.record?.appliedTag ?? null,
       testMode: r.dmarc.record?.testMode ?? false,
+      // 100 when the record has no pct= tag: RFC 7489's default, which is what a record
+      // without the tag means under either RFC. pctTag is the tag as published, and is
+      // null when there is none — the field to read to tell the two apart. Additive.
       pct: r.dmarc.record?.pct ?? null,
+      pctTag: r.dmarc.record?.pctTag ?? null,
       rua: r.dmarc.record?.rua.map((u) => u.address) ?? [],
       externalDestinations: r.dmarc.externalDestinations.map((d) => ({
         host: d.uri.host,

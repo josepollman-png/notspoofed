@@ -624,6 +624,29 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
 
   const r = dmarc.record;
 
+  // Tags RFC 9989 removed and that the deprecated-tags finding below asks to be tidied
+  // away. Every record suggested here is built from the published one, so it leaves
+  // them out too — one page must not call pct=100 deprecated and then hand back a
+  // record containing it. pct below 100 is not in this list: it still changes what
+  // the record does, so it stays until the dmarc-pct fix, which is about exactly that.
+  const stale = r.deprecatedTags.filter((t) => t !== 'pct' || r.pct === 100);
+  const dropped: string[] = [];
+  const base = r.raw
+    .split(';')
+    .filter((part) => {
+      const name = part.split('=')[0]?.trim().toLowerCase() ?? '';
+      if (!stale.includes(name)) return true;
+      dropped.push(part.trim());
+      return false;
+    })
+    .join(';');
+  const droppedNote = dropped.length === 0
+    ? ''
+    : ` It also leaves out ${dropped.join(', ')}: RFC 9989 removed ` +
+      `${dropped.length === 1 ? 'that tag' : 'those tags'}, as the note on deprecated tags explains.`;
+  const fromRecord = (host: string, value: string, caveat: string) =>
+    dmarcFix(host, value, caveat + droppedNote);
+
   if (r.inherited) {
     out.push({
       id: 'dmarc-inherited',
@@ -648,9 +671,9 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         'Your DMARC record collects reports but asks receivers to take no action. This ' +
         'is the correct place to start, and Gmail and Yahoo accept p=none for their ' +
         'bulk-sender DMARC rule. But it is not protection: forged mail is still delivered.',
-      fix: dmarcFix(
+      fix: fromRecord(
         `_dmarc.${domain}`,
-        r.raw.replace(/\bp\s*=\s*none\b/i, 'p=quarantine'),
+        base.replace(/\bp\s*=\s*none\b/i, 'p=quarantine'),
         'Only publish this once your reports show legitimate mail passing SPF or ' +
           'DKIM with alignment. Moving to quarantine while a real sender is still ' +
           'failing will send that mail to spam.',
@@ -664,9 +687,9 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
       detail:
         'Failing mail goes to spam rather than being rejected. This is real protection. ' +
         'p=reject is the end state once you are confident in your reports.',
-      fix: dmarcFix(
+      fix: fromRecord(
         `_dmarc.${domain}`,
-        r.raw.replace(/\bp\s*=\s*quarantine\b/i, 'p=reject'),
+        base.replace(/\bp\s*=\s*quarantine\b/i, 'p=reject'),
         'Move only after a sustained period with no legitimate mail failing in your reports.',
       ),
     });
@@ -693,9 +716,9 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         'testing, so they apply handling one level below it. Forged mail that reads as ' +
         `${r.effectivePolicy === 'reject' ? 'rejected is quarantined' : 'quarantined is delivered'} ` +
         'instead. That is the right setting for a dry run and the wrong one to leave behind.',
-      fix: dmarcFix(
+      fix: fromRecord(
         `_dmarc.${domain}`,
-        r.raw.replace(/\bt\s*=\s*y\b/i, 't=n'),
+        base.replace(/\bt\s*=\s*y\b/i, 't=n'),
         'Publish this once a dry run has produced no surprises. Removing t= entirely ' +
           'has the same effect — t=n is the default.',
       ),
@@ -714,9 +737,9 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         'real coverage was always less predictable than the number suggests, and on a ' +
         'receiver that has moved to 9989 there is now no gap because there is no tag. ' +
         'Either way it should not be what stands between a forgery and your customers.',
-      fix: dmarcFix(
+      fix: fromRecord(
         `_dmarc.${domain}`,
-        r.raw.replace(/;?\s*pct\s*=\s*\d+/i, ''),
+        base.replace(/;?\s*pct\s*=\s*\d+/i, ''),
         'Removing pct= applies your policy to all failing mail. Do this once the ' +
           'rollout is complete. For a staged rollout, t=y is the replacement.',
       ),
@@ -732,9 +755,9 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         'With no rua= address you get no aggregate reports, so you cannot see who is ' +
         'sending as your domain or whether your own mail is passing. You are enforcing ' +
         'a policy blind.',
-      fix: dmarcFix(
+      fix: fromRecord(
         `_dmarc.${domain}`,
-        `${r.raw.replace(/;\s*$/, '')}; rua=mailto:dmarc@${domain}`,
+        `${base.replace(/;\s*$/, '')}; rua=mailto:dmarc@${domain}`,
         'The mailbox must exist and will receive daily XML attachments from mailbox providers.',
       ),
     });
@@ -807,9 +830,9 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
           `p=${r.policy} but sp=${r.subdomainPolicy}. Attackers forge subdomains ` +
           'precisely because they are usually weaker — a lookalike like ' +
           `billing.${domain} would be treated with the weaker policy.`,
-        fix: dmarcFix(
+        fix: fromRecord(
           `_dmarc.${domain}`,
-          r.raw.replace(/\bsp\s*=\s*(none|quarantine|reject)\b/i, `sp=${r.policy}`),
+          base.replace(/\bsp\s*=\s*(none|quarantine|reject)\b/i, `sp=${r.policy}`),
           'Confirm no subdomain sends mail that would start failing under the stricter policy.',
         ),
       });
@@ -831,7 +854,7 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         'refuse the unregistered ones outright while leaving your genuine subdomains ' +
         `under ${r.subdomainPolicy ? `sp=${r.subdomainPolicy}` : 'p='}. ` +
         'Receivers that have not adopted 9989 ignore it, so publishing it costs nothing.',
-      fix: dmarcFix(
+      fix: fromRecord(
         // foundAt, not domain, unlike the findings above: np= governs non-existent
         // subdomains *of the domain publishing it*, so on an inherited record it
         // belongs on the parent. Publishing it at the subdomain the user happened to
@@ -840,7 +863,7 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         // Appended rather than spliced in after p=. Tag order carries no meaning past
         // v=, and splicing re-emitted a sp= that was already in the record — a repeated
         // tag, which this same parser correctly calls an error.
-        `${r.raw.replace(/;\s*$/, '')}; np=reject`,
+        `${base.replace(/;\s*$/, '')}; np=reject`,
         'Safe for almost every domain, because it only applies to names that resolve ' +
           'to nothing. Check first that no sender uses a subdomain that exists only as ' +
           'a bare MX or TXT name.',
@@ -871,7 +894,6 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
   // Separate from the finding above on purpose. A deprecated tag is valid, published
   // on purpose, and still honoured by most receivers; telling someone to go looking
   // for a spelling mistake in it would send them after a bug that is not there.
-  const stale = r.deprecatedTags.filter((t) => t !== 'pct' || r.pct === 100);
   if (stale.length > 0) {
     out.push({
       id: 'dmarc-deprecated-tags',
@@ -883,7 +905,11 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
         'they no longer do anything you can rely on. ' +
         (stale.includes('pct') ? 't=y is the replacement for staged rollouts. ' : '') +
         (stale.includes('ri') ? 'Aggregate reports are daily in practice regardless. ' : '') +
-        'Removing them is tidying, not a fix.',
+        'Removing them is tidying, not a fix' +
+        (dropped.length > 0 && out.some((f) =>
+          f.id !== 'dmarc-external-unauthorised' && (f.fix?.kind === 'record' || f.fix?.managedRecord))
+          ? ', and every record suggested on this page already leaves them out.'
+          : '.'),
     });
   }
 
