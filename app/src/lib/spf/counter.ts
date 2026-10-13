@@ -2,6 +2,7 @@ import { InvalidDomainError } from '../check.js';
 import { normaliseFinderDomain } from '../dkim/finder.js';
 import { DnsResolver, type DnsBackend } from '../dns/resolver.js';
 import {
+  allSource,
   evaluateSpf,
   LOOKUP_LIMIT,
   VOID_LIMIT,
@@ -387,11 +388,17 @@ function findFlags(evaluation: SpfEvaluation, strings: string[], source: Counter
     if (n > 1) add({ code: 'duplicate-include', severity: 'warning', message: `${target} is included ${n} times across the tree. Every copy is charged again.` });
   }
 
-  if (evaluation.found) {
+  // Read through redirect= rather than off the apex: a record ending in redirect= has
+  // no all by design, and telling its owner to add one would switch the redirect off
+  // (RFC 7208 §6.1). A redirect that was not followed to a record says nothing about
+  // all either way; the flag for why it was not followed already stands.
+  const decides = evaluation.found ? allSource(evaluation.tree) : null;
+  if (decides && decides.status !== 'unresolved') {
     const q = evaluation.allQualifier;
-    if (q === '+') add({ code: 'permissive-all', severity: 'error', message: '+all authorises every server on the internet to send as this domain. Use ~all or -all.' });
-    else if (q === '?') add({ code: 'permissive-all', severity: 'warning', message: '?all is neutral: unlisted servers are neither passed nor failed, which protects nothing. Use ~all or -all.' });
-    else if (q === null) add({ code: 'no-all', severity: 'warning', message: 'No all mechanism, so unlisted servers get a neutral result — the same as ?all. End the record with ~all or -all.' });
+    const where = decides.node === evaluation.tree ? '' : ` (in ${decides.node.domain}, the redirect= target — change it there, not here)`;
+    if (q === '+') add({ code: 'permissive-all', severity: 'error', message: `+all authorises every server on the internet to send as this domain. Use ~all or -all${where}.` });
+    else if (q === '?') add({ code: 'permissive-all', severity: 'warning', message: `?all is neutral: unlisted servers are neither passed nor failed, which protects nothing. Use ~all or -all${where}.` });
+    else if (decides.status === 'none') add({ code: 'no-all', severity: 'warning', message: `No all mechanism, so unlisted servers get a neutral result — the same as ?all. End the record with ~all or -all${where}.` });
   }
 
   if (source === 'pasted') {

@@ -74,6 +74,12 @@ export interface SpfProblem {
   term?: string;
   /** For a syntax error that is two terms run together: the corrected pair. */
   suggestion?: string;
+  /**
+   * For a record that could not be fetched: whether an include or a redirect= led to
+   * it. The RFC treats the two differently — a redirect target with no record is a
+   * permerror under §6.1, an include target under §5.2 — and the report says which.
+   */
+  via?: 'include' | 'redirect';
 }
 
 export interface SpfEvaluation {
@@ -146,7 +152,12 @@ async function fetchSpf(
 
   if (answer.void) {
     state.voids++;
-    return { record: null, error: 'no SPF record published' };
+    return {
+      record: null,
+      error: answer.error === 'NXDOMAIN'
+        ? 'no SPF record published (the name does not exist, NXDOMAIN)'
+        : 'no SPF record published (the name has no TXT records)',
+    };
   }
   if (answer.error) {
     return { record: null, error: `DNS ${answer.error.toLowerCase()}`, dnsError: answer.error };
@@ -157,7 +168,7 @@ async function fetchSpf(
     // The name exists and has TXT records, just none of them SPF. Still a void
     // lookup for limit purposes — nothing usable came back.
     state.voids++;
-    return { record: null, error: 'no SPF record published' };
+    return { record: null, error: 'no SPF record published (it has TXT records, none of them SPF)' };
   }
   if (spf.length > 1) {
     return {
@@ -172,6 +183,7 @@ async function walk(
   state: State,
   domain: string,
   path: readonly string[],
+  via?: 'include' | 'redirect',
 ): Promise<SpfNode> {
   const node: SpfNode = {
     domain, record: null, parsed: null, children: [], ownIp4: [], ownIp6: [],
@@ -187,6 +199,10 @@ async function walk(
     // A DNS failure is not "no record": the first is unknown, the second a fact.
     const code = error.startsWith('PermError') ? 'multiple-records' : dnsError ? 'dns-error' : 'no-record';
     problem(state, domain, code, error);
+    if (via) {
+      const p = state.problems.find((x) => x.code === code && x.domain === domain);
+      if (p && !p.via) p.via = via;
+    }
     if (dnsError && path.length === 0) state.lookupError = dnsError;
   }
   if (!record) return node;
@@ -288,7 +304,7 @@ async function walk(
       continue;
     }
 
-    const child = await walk(state, target, [...path, domain.toLowerCase()]);
+    const child = await walk(state, target, [...path, domain.toLowerCase()], term.name === 'redirect' ? 'redirect' : 'include');
     push({ node: child }, child.fetchVoids ?? 0);
   }
 
@@ -335,22 +351,41 @@ async function resolveAddresses(
 }
 
 /**
- * The qualifier that actually decides the fate of an unlisted sender.
+ * Which record's `all` decides the fate of an unlisted sender, and whether we know.
  *
  * A record whose only term is `redirect=` has no `all` of its own — hubspot.com is
  * exactly this. RFC 7208 §6.1: when nothing matches, the redirect target's record
  * *replaces* this one, so its `all` is the operative policy. Reading only the apex
  * would report "no policy" for a domain that is in fact publishing `-all`.
+ *
+ * - `all`        — found: `term` in `node`, which is the apex or a redirect target.
+ * - `none`       — the chain ends in a record with neither `all` nor `redirect=`.
+ * - `unresolved` — a redirect= was not followed to a record: the lookup failed, the
+ *                  target publishes none, or it was a macro, a loop or past the limit.
+ *                  Nothing can be said about `all` then, and above all a missing one
+ *                  must not be reported: the record ends in redirect= by design.
  */
-function effectiveAll(node: SpfNode | null): string | null {
+export type AllSource =
+  | { status: 'all'; node: SpfNode; term: Term }
+  | { status: 'none'; node: SpfNode }
+  | { status: 'unresolved'; node: SpfNode; redirect: SpfChild };
+
+export function allSource(node: SpfNode | null): AllSource | null {
   if (!node?.parsed) return null;
 
   const all = node.parsed.terms.find((t) => t.name === 'all' && t.kind === 'mechanism');
-  if (all) return all.qualifier;
+  if (all) return { status: 'all', node, term: all };
 
-  // No `all` here: fall through the redirect, if one was followed.
-  const redirect = node.children.find((c) => c.term.name === 'redirect' && c.node);
-  return redirect ? effectiveAll(redirect.node) : null;
+  const redirect = node.children.find((c) => c.term.name === 'redirect');
+  if (!redirect) return { status: 'none', node };
+  // No `all` here: fall through the redirect, if it reached a record.
+  if (!redirect.node?.parsed) return { status: 'unresolved', node, redirect };
+  return allSource(redirect.node);
+}
+
+function effectiveAll(node: SpfNode | null): string | null {
+  const source = allSource(node);
+  return source?.status === 'all' ? source.term.qualifier : null;
 }
 
 /**
@@ -369,7 +404,11 @@ function permerrorReason(state: State, apex: string): string | null {
   const syntax = first('syntax');
   if (syntax) return syntax.term ? `malformed term "${syntax.term}"` : syntax.message;
   const missing = state.problems.find((p) => p.code === 'no-record' && p.domain !== apex);
-  if (missing) return `${missing.domain} is included but publishes no SPF record`;
+  if (missing) {
+    return missing.via === 'redirect'
+      ? `the redirect= target ${missing.domain} publishes no SPF record`
+      : `${missing.domain} is included but publishes no SPF record`;
+  }
   if (first('loop')) return 'an include loop';
   if (state.lookups > LOOKUP_LIMIT) return `${state.lookups} DNS lookups, over the limit of ${LOOKUP_LIMIT}`;
   if (state.voids > VOID_LIMIT) return `${state.voids} void lookups, over the limit of ${VOID_LIMIT}`;

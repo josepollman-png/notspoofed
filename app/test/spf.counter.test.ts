@@ -175,6 +175,22 @@ describe('SPF lookup counter', () => {
     expect(f.flags).toEqual([expect.objectContaining({ code: 'permissive-all', severity: 'warning' })]);
   });
 
+  it('never asks for an all on a record that ends in an unanswered redirect=', async () => {
+    // servicenow.com, 12 October 2026: SERVFAIL on the target read as "no all".
+    const dns = new FakeDns({
+      TXT: { 'e.com': ['v=spf1 redirect=_spf.p.com'] },
+      ERRORS: { 'TXT _spf.p.com': 'SERVFAIL' },
+    });
+    const r = await countSpfLookups({ domain: 'e.com', dns });
+    expect(r.flags.map((f) => f.code)).not.toContain('no-all');
+  });
+
+  it('points a missing all in a redirect target at the target', async () => {
+    const dns = new FakeDns({ TXT: { 'e.com': ['v=spf1 redirect=_spf.e.com'], '_spf.e.com': ['v=spf1 ip4:192.0.2.1'] } });
+    const r = await countSpfLookups({ domain: 'e.com', dns });
+    expect(r.flags.find((f) => f.code === 'no-all')?.message).toContain('in _spf.e.com, the redirect= target');
+  });
+
   it('tests a pasted draft, resolving its includes live but not the apex', async () => {
     const dns = new FakeDns({ TXT: { 'a.com': ['v=spf1 ip4:192.0.2.0/24 -all'] } });
     const r = await countSpfLookups({ record: 'v=spf1 include:a.com mx ~all', dns });

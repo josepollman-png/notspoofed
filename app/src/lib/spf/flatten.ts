@@ -214,6 +214,13 @@ export function planFlattening(evaluation: SpfEvaluation): FlattenPlan | null {
       continue;
     }
     if (term.kind === 'unknown' && term.name !== 'all') continue;
+    // A redirect= beside an all is already ignored (RFC 7208 §6.1). Carrying it into
+    // the suggestion would hand out a record with both, which reads as a redirect that
+    // works; leaving it out changes nothing about what the record means.
+    if (term.name === 'redirect' && apexTerms.some((t) => t.name === 'all' && t.kind === 'mechanism')) {
+      warnings.push(`${term.raw} is left out: the all mechanism already switches it off (RFC 7208 §6.1).`);
+      continue;
+    }
     kept.push(term.raw);
   }
 

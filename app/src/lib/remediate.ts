@@ -8,7 +8,7 @@ import type { BimiResult, DnssecResult, MtaStsResult, TlsRptResult } from './mod
 import type { Finding, FindingId, Fix } from './findings.js';
 import { bySeverity } from './findings.js';
 import type { SpfEvaluation } from './spf/evaluate.js';
-import { LOOKUP_LIMIT } from './spf/evaluate.js';
+import { allSource, LOOKUP_LIMIT } from './spf/evaluate.js';
 import type { FlattenPlan } from './spf/flatten.js';
 
 /**
@@ -100,6 +100,43 @@ function isNonSending(input: CheckInput): boolean {
   return input.spf.sendsNoMail;
 }
 
+/** Replace one term of an SPF record, matching whole tokens only. */
+function replaceTerm(record: string, term: string, replacement: string): string {
+  const tokens = record.trim().split(/\s+/);
+  const i = tokens.indexOf(term);
+  if (i >= 0) tokens[i] = replacement;
+  return tokens.join(' ');
+}
+
+/**
+ * An SPF record fix. No suggested record may carry both an `all` and a `redirect=`:
+ * RFC 7208 §6.1 ignores the redirect when there is an `all` anywhere in the record, so
+ * the pair is either a redirect someone believes is working or a record switched off by
+ * our own advice. A redirect that `all` already makes dead is dropped here — that
+ * changes nothing about what the record means — and the caveat says so.
+ */
+function spfFix(
+  domain: string,
+  host: string,
+  value: string,
+  caveat: string,
+  chain: readonly string[],
+): Fix {
+  const tokens = value.trim().split(/\s+/);
+  const hasAll = tokens.some((t) => /^[+\-~?]?all$/i.test(t));
+  const dead = hasAll ? tokens.filter((t) => /^redirect=/i.test(t)) : [];
+  if (dead.length === 0) return txtFix(domain, host, value, caveat, chain);
+
+  return txtFix(
+    domain,
+    host,
+    tokens.filter((t) => !dead.includes(t)).join(' '),
+    `${caveat} It also leaves out ${dead.join(' ')}, which the all mechanism already ` +
+      'switches off (RFC 7208 §6.1), so dropping it changes nothing.',
+    chain,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // SPF
 // ---------------------------------------------------------------------------
@@ -159,7 +196,7 @@ function spfFindings({ domain, spf, flatten, domainCnameChain = [] }: CheckInput
     };
 
     if (flatten) {
-      base.fix = txtFix(
+      base.fix = spfFix(
         domain,
         domain,
         flatten.record,
@@ -200,54 +237,72 @@ function spfFindings({ domain, spf, flatten, domainCnameChain = [] }: CheckInput
     });
   }
 
-  const all = spf.allQualifier;
-  if (all === '+') {
-    out.push({
-      id: 'spf-permissive-all',
-      severity: 'critical',
-      title: 'SPF ends in +all, which authorises the entire internet',
-      detail:
-        'Any server anywhere passes SPF for your domain. This is worse than having no ' +
-        'SPF record, because it actively vouches for forgeries.',
-      fix: txtFix(
-        domain,
-        domain,
-        (spf.record ?? '').replace(/\+?all\s*$/, '~all'),
-        'Change +all to ~all, then to -all once you have confirmed your senders are listed.',
-        domainCnameChain,
-      ),
-    });
-  } else if (all === null) {
-    out.push({
-      id: 'spf-no-all',
-      severity: 'warning',
-      title: 'SPF has no all mechanism',
-      detail:
-        'Without a closing all, unlisted senders get a neutral result, which receivers ' +
-        'treat almost identically to having no SPF record. The record is doing much ' +
-        'less than it appears to.',
-      fix: txtFix(
-        domain,
-        domain,
-        `${spf.record} ~all`,
-        'Start with ~all (softfail). Move to -all only once reports confirm every legitimate sender is covered.',
-        domainCnameChain,
-      ),
-    });
-  } else if (all === '?') {
-    out.push({
-      id: 'spf-neutral-all',
-      severity: 'warning',
-      title: 'SPF ends in ?all (neutral)',
-      detail: 'A neutral result tells receivers nothing, so the record provides no protection against forgery.',
-      fix: txtFix(
-        domain,
-        domain,
-        (spf.record ?? '').replace(/\?all\s*$/, '~all'),
-        'Verify all your senders are listed before tightening further to -all.',
-        domainCnameChain,
-      ),
-    });
+  // Where the deciding `all` lives, following redirect= — never just the apex string.
+  // A record that ends in redirect= has no `all` by design: its `all` is in the target,
+  // and adding one here would switch the redirect off (RFC 7208 §6.1) and leave every
+  // sender, the real ones included, on whatever the new `all` says. When the target
+  // could not be read, nothing is said about `all` at all; the finding that explains
+  // why (lookup failed, no record, macro, limit, loop) stands on its own.
+  const source = allSource(spf.tree);
+  if (source && source.status !== 'unresolved') {
+    const at = source.node;
+    const own = at === spf.tree;
+    // An apex alias cannot hold the record; a redirect target's chain was not walked.
+    const chain = own ? domainCnameChain : [];
+    const where = own ? '' : ` in ${at.domain}, the record your redirect= hands the policy to`;
+    const targetNote = own
+      ? ''
+      : ` This change belongs in ${at.domain}, the record your own one redirects to, not ` +
+        `in ${domain}: adding all to ${domain} would switch its redirect= off.`;
+    const qualifier = source.status === 'all' ? source.term.qualifier : null;
+    const swapAll = (to: string) =>
+      source.status === 'all' ? replaceTerm(at.record ?? '', source.term.raw, to) : '';
+
+    if (qualifier === '+') {
+      out.push({
+        id: 'spf-permissive-all',
+        severity: 'critical',
+        title: 'SPF ends in +all, which authorises the entire internet',
+        detail:
+          'Any server anywhere passes SPF for your domain. This is worse than having no ' +
+          `SPF record, because it actively vouches for forgeries.${own ? '' : ` The +all is${where}.`}`,
+        fix: spfFix(
+          domain, at.domain, swapAll('~all'),
+          'Change +all to ~all, then to -all once you have confirmed your senders are listed.' + targetNote,
+          chain,
+        ),
+      });
+    } else if (qualifier === '?') {
+      out.push({
+        id: 'spf-neutral-all',
+        severity: 'warning',
+        title: 'SPF ends in ?all (neutral)',
+        detail:
+          'A neutral result tells receivers nothing, so the record provides no protection ' +
+          `against forgery.${own ? '' : ` The ?all is${where}.`}`,
+        fix: spfFix(
+          domain, at.domain, swapAll('~all'),
+          'Verify all your senders are listed before tightening further to -all.' + targetNote,
+          chain,
+        ),
+      });
+    } else if (source.status === 'none') {
+      out.push({
+        id: 'spf-no-all',
+        severity: 'warning',
+        title: 'SPF has no all mechanism',
+        detail:
+          'Without a closing all, unlisted senders get a neutral result, which receivers ' +
+          'treat almost identically to having no SPF record. The record is doing much ' +
+          `less than it appears to.${own ? '' : ` The record without one is${where}.`}`,
+        fix: spfFix(
+          domain, at.domain, `${(at.record ?? '').trim()} ~all`,
+          'Start with ~all (softfail). Move to -all only once reports confirm every ' +
+            'legitimate sender is covered.' + targetNote,
+          chain,
+        ),
+      });
+    }
   }
 
   if (spf.macroTerms.length > 0) {
@@ -282,7 +337,7 @@ function spfFindings({ domain, spf, flatten, domainCnameChain = [] }: CheckInput
               'record split into several TXT strings, which join with nothing between them.'
             : ''),
         fix: p.suggestion && p.term && p.domain === domain && spf.record
-          ? txtFix(
+          ? spfFix(
               domain,
               domain,
               spf.record.replace(p.term, p.suggestion),
@@ -297,33 +352,62 @@ function spfFindings({ domain, spf, flatten, domainCnameChain = [] }: CheckInput
     }
 
     if (p.code === 'no-record' && p.domain !== domain) {
+      // RFC 7208 makes both a permerror, but for different reasons and with different
+      // fixes: a dead include is one sender among several, a dead redirect= is the
+      // whole policy.
+      const redirect = p.via === 'redirect';
       out.push({
         id: 'spf-include-no-record',
         severity: 'critical',
-        title: `SPF permerror: ${p.domain} publishes no SPF record`,
-        detail:
-          `Your record includes ${p.domain}, which has no SPF record. RFC 7208 §5.2 makes ` +
-          'that a permerror when a receiver reaches it. Usually the include belongs to a ' +
-          'service you no longer use, or its name was mistyped.',
+        title: redirect
+          ? `SPF permerror: the redirect= target ${p.domain} publishes no SPF record`
+          : `SPF permerror: ${p.domain} publishes no SPF record`,
+        detail: redirect
+          ? `Your record hands its whole policy to ${p.domain} with redirect=, and the ` +
+            `lookup there found ${p.message.replace(/^no SPF record published/, 'no SPF record')}. ` +
+            'RFC 7208 §6.1 makes that a permerror rather than "none", so every message ' +
+            'from your domain fails SPF the same way, the real ones included.'
+          : `Your record includes ${p.domain}, which has no SPF record. RFC 7208 §5.2 makes ` +
+            'that a permerror when a receiver reaches it. Usually the include belongs to a ' +
+            'service you no longer use, or its name was mistyped.',
         fix: {
           kind: 'action',
-          steps: [
-            `Check the include value against the provider's current documentation.`,
-            'If you no longer use the service, remove the include.',
-          ],
+          steps: redirect
+            ? [
+                `Check the redirect= value against your provider's current documentation — ` +
+                  'a single wrong character here breaks SPF for every sender.',
+                'If the provider has moved your record, point redirect= at the new name.',
+              ]
+            : [
+                `Check the include value against the provider's current documentation.`,
+                'If you no longer use the service, remove the include.',
+              ],
         },
       });
       continue;
     }
 
     if (p.code === 'dns-error') {
+      // A failed lookup is a temperror (RFC 7208 §4.4), not a missing record. On a
+      // redirect= target it is also the whole policy: the senders and the all that
+      // decide the result live there, so the report has nothing else to say about
+      // them — and must not, say, call the record "missing an all mechanism".
+      const redirect = p.via === 'redirect';
       out.push({
         id: 'spf-lookup-failed',
-        severity: 'info',
-        title: `${p.domain} could not be checked`,
-        detail:
-          `The SPF record at ${p.domain} got no answer (${p.message}), after a retry, so ` +
-          'the lookup count below it is incomplete. Run the check again in a minute.',
+        severity: redirect ? 'warning' : 'info',
+        title: redirect
+          ? `SPF could not be checked: the redirect= target ${p.domain} did not answer`
+          : `${p.domain} could not be checked`,
+        detail: redirect
+          ? `Your record hands its whole policy to ${p.domain} with redirect=, and the ` +
+            `lookup for it got no answer (${p.message}), after a retry. Its senders and ` +
+            'its all mechanism live there, so nothing about them can be checked from ' +
+            'here. A receiver hitting the same failure returns temperror (RFC 7208 §4.4) ' +
+            'and usually retries later; this is not evidence the record is missing. Run ' +
+            'the check again in a minute.'
+          : `The SPF record at ${p.domain} got no answer (${p.message}), after a retry, so ` +
+            'the lookup count below it is incomplete. Run the check again in a minute.',
       });
       continue;
     }
