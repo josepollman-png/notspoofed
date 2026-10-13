@@ -883,10 +883,12 @@ export function dmarcFindings({ domain, dmarc, mx }: Pick<CheckInput, 'domain' |
   // receive mail. With no MX, delivery falls back to the A record — which for a
   // web-only domain is a web server that speaks no SMTP, so every report bounces.
   // The record looks flawless while you receive nothing.
-  const orgDomain = dmarc.orgDomain ?? domain;
-  const localRua = r.rua.filter(
-    (u) => u.host === domain || u.host === orgDomain || u.host.endsWith(`.${orgDomain}`),
-  );
+  //
+  // Only an address at the checked name itself can be judged: its MX is the only one
+  // in hand. An address at another name in the same organization has MX records of
+  // its own — gov.uk has none, while its reports go to dmarc.service.gov.uk, which
+  // receives mail — and calling those undeliverable was a false alarm.
+  const localRua = r.rua.filter((u) => u.host === domain);
   if (localRua.length > 0 && mx.length === 0) {
     out.push({
       id: 'dmarc-rua-undeliverable',

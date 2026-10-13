@@ -371,3 +371,19 @@ describe('suggested records and the tags RFC 9989 removed', () => {
     expect(some.pctTag).toBe(100);
   });
 });
+
+describe('report addresses with nowhere to go', () => {
+  const findingsFor = async (raw: string) => {
+    const dmarc = await checkDmarc(new FakeDns({ TXT: { '_dmarc.e.com': [raw] } }), 'e.com');
+    return dmarcFindings({ domain: 'e.com', dmarc, mx: [] }).map((f) => f.id);
+  };
+
+  it('flags an address at the checked domain when it has no MX', async () => {
+    expect(await findingsFor('v=DMARC1; p=reject; rua=mailto:d@e.com')).toContain('dmarc-rua-undeliverable');
+  });
+
+  it('does not judge an address at another name by the checked domain’s MX (gov.uk shape)', async () => {
+    // gov.uk publishes no MX; its reports go to dmarc.service.gov.uk, which has its own.
+    expect(await findingsFor('v=DMARC1; p=reject; rua=mailto:d@reports.e.com')).not.toContain('dmarc-rua-undeliverable');
+  });
+});
